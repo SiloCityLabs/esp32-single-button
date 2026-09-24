@@ -1,0 +1,66 @@
+# ESPHome firmware — Seeed Studio XIAO ESP32-C6, single button keyfob
+
+packages:
+  single_button: !include esphome-common.yaml
+
+esp32:
+  board: seeed_xiao_esp32c6
+  framework:
+    type: esp-idf
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: D1
+      mode:
+        input: true
+        pullup: true
+      inverted: true
+      allow_other_uses: true
+    name: "Button"
+    id: btn1
+    filters:
+      - delayed_on: 5ms
+      - delayed_off: 5ms
+    on_press:
+      then:
+        - logger.log:
+            level: INFO
+            format: "Button on_press (D1 went active-low)"
+        - script.execute: handle_button_press
+    on_release:
+      then:
+        - logger.log:
+            level: INFO
+            format: "Button on_release (D1 returned high)"
+    on_state:
+      then:
+        - logger.log:
+            level: DEBUG
+            format: "Button on_state changed"
+
+# D1 is LP GPIO — wake from deep sleep on button press (active low).
+deep_sleep:
+  id: deep_sleep_id
+  run_duration:
+    default: 3min
+    gpio_wakeup_reason: ${awake_after_button_ms}
+  esp32_ext1_wakeup:
+    mode: ANY_LOW
+    pins:
+      - pin:
+          number: D1
+          inverted: true
+          allow_other_uses: true
+          mode:
+            input: true
+            pullup: true
+  on_wake:
+    - logger.log:
+        level: INFO
+        format: "Deep sleep wake (GPIO ext1 on D1)"
+    - globals.set:
+        id: defer_button_led_to_late_boot
+        value: "true"
+    - deep_sleep.prevent: deep_sleep_id
+    - script.execute: stay_awake_after_wake

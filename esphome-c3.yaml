@@ -1,0 +1,38 @@
+# ESPHome firmware — Seeed Studio XIAO ESP32-C3, single button keyfob
+
+packages:
+  single_button: !include esphome-common.yaml
+
+esp32:
+  board: seeed_xiao_esp32c3
+  framework:
+    type: esp-idf
+
+binary_sensor:
+  - platform: gpio
+    pin:
+      number: D1
+      mode: INPUT
+      inverted: true
+      allow_other_uses: true
+    name: "Button"
+    id: btn1
+    filters:
+      - delayed_on: 5ms
+      - delayed_off: 5ms
+    on_press:
+      then:
+        - script.execute: handle_button_press
+
+deep_sleep:
+  id: deep_sleep_id
+  run_duration:
+    default: 3min
+    gpio_wakeup_reason: ${awake_after_button_ms}
+  wakeup_pin:
+    number: D1
+    inverted: true
+    allow_other_uses: true
+  wakeup_pin_mode: KEEP_AWAKE
+  on_wake:
+    - logger.log: "Single button woke from deep sleep (GPIO)"

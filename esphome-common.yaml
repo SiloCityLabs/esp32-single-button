@@ -1,0 +1,273 @@
+# Shared hardware for single-button XIAO ESP32-C3 / C6 (battery, RGB, one switch)
+
+substitutions:
+  name: "single-button"
+  friendly_name: "Single Button"
+  log_level: "DEBUG"
+  awake_after_button_ms: "5s"
+
+esphome:
+  name: ${name}
+  friendly_name: ${friendly_name}
+  name_add_mac_suffix: true
+  min_version: 2025.6.0
+  project:
+    name: silocitylabs.esp32-single-button
+    version: "1.0.0"
+  on_boot:
+    - priority: 600
+      then:
+        - logger.log:
+            level: INFO
+            format: "Boot complete — battery sample (LED after init or via GPIO wake handler)"
+        - script.execute: sample_battery
+        - script.execute: log_button_state
+    - priority: -100
+      then:
+        - if:
+            condition:
+              lambda: |-
+                esp_sleep_wakeup_cause_t cause = esp_sleep_get_wakeup_cause();
+                return cause == ESP_SLEEP_WAKEUP_EXT1 ||
+                       cause == ESP_SLEEP_WAKEUP_GPIO ||
+                       cause == ESP_SLEEP_WAKEUP_EXT0;
+            then:
+              - logger.log:
+                  level: INFO
+                  format: "GPIO wake — LED ack after drivers ready"
+              - script.execute: rgb_ack_pulse
+              - globals.set:
+                  id: defer_button_led_to_late_boot
+                  value: "false"
+            else:
+              - logger.log:
+                  level: INFO
+                  format: "Cold boot — running wake indicator"
+              - script.execute: wake_indicator
+  on_shutdown:
+    then:
+      - logger.log:
+          level: INFO
+          format: "Shutdown — turning off RGB and power gating"
+      - light.turn_off: rgb_led
+      - switch.turn_off: rgb_power
+      - switch.turn_off: vdiv_power
+
+logger:
+  level: ${log_level}
+  logs:
+    gpio: DEBUG
+    binary_sensor: DEBUG
+    deep_sleep: DEBUG
+
+api:
+
+ota:
+  - platform: esphome
+    id: single_button_ota
+    on_begin:
+      then:
+        - deep_sleep.prevent: deep_sleep_id
+
+wifi:
+  fast_connect: true
+  power_save_mode: none
+  ap:
+
+captive_portal:
+
+esp32_improv:
+  authorizer: none
+
+improv_serial:
+
+globals:
+  - id: defer_button_led_to_late_boot
+    type: bool
+    restore_value: no
+    initial_value: "false"
+
+output:
+  - platform: gpio
+    pin: D9
+    id: rgb_power_out
+  - platform: gpio
+    pin: D10
+    id: vdiv_power_out
+
+switch:
+  - platform: output
+    name: "RGB LED Power"
+    id: rgb_power
+    output: rgb_power_out
+    restore_mode: ALWAYS_OFF
+    internal: true
+    on_turn_on:
+      - logger.log:
+          level: INFO
+          format: "RGBON (D9) HIGH — WS2812 ground path enabled"
+    on_turn_off:
+      - logger.log:
+          level: INFO
+          format: "RGBON (D9) LOW — WS2812 ground path disabled"
+  - platform: output
+    name: "Battery Divider Power"
+    id: vdiv_power
+    output: vdiv_power_out
+    restore_mode: ALWAYS_OFF
+    internal: true
+
+light:
+  - platform: esp32_rmt_led_strip
+    id: rgb_led
+    name: "Button RGB"
+    chipset: WS2812
+    pin: D6
+    num_leds: 1
+    channel_colors: GRB
+    restore_mode: ALWAYS_OFF
+    default_transition_length: 0s
+
+sensor:
+  - platform: adc
+    pin: D0
+    id: battery_adc
+    name: "Battery Voltage"
+    unit_of_measurement: V
+    device_class: voltage
+    state_class: measurement
+    accuracy_decimals: 2
+    attenuation: 12db
+    update_interval: never
+    filters:
+      - multiply: 2.0
+
+  - platform: template
+    name: "Battery Level"
+    id: battery_level
+    unit_of_measurement: "%"
+    device_class: battery
+    state_class: measurement
+    accuracy_decimals: 0
+    lambda: |-
+      if (id(battery_adc).has_state()) {
+        float v = id(battery_adc).state;
+        float pct = (v - 3.0f) / (4.2f - 3.0f) * 100.0f;
+        if (pct < 0.0f) pct = 0.0f;
+        if (pct > 100.0f) pct = 100.0f;
+        return pct;
+      }
+      return NAN;
+
+button:
+  - platform: restart
+    name: "Restart"
+    id: restart_button
+  - platform: template
+    name: "Sleep Now"
+    id: sleep_now_button
+    on_press:
+      then:
+        - script.execute: prepare_deep_sleep
+
+script:
+  - id: rgb_supply_off
+    mode: restart
+    then:
+      - light.turn_off: rgb_led
+      - delay: 10ms
+      - switch.turn_off: rgb_power
+
+  # Power rail + RMT frames in one flow (no script hop). Run from late on_boot on GPIO wake.
+  - id: rgb_ack_pulse
+    mode: restart
+    then:
+      - switch.turn_on: rgb_power
+      - lambda: |-
+          auto call = id(rgb_led).turn_on();
+          call.set_brightness(0.5f);
+          call.set_rgb(0.0f, 1.0f, 0.0f);
+          call.set_transition_length(0);
+          call.perform();
+          call.perform();
+      - delay: 700ms
+      - light.turn_off: rgb_led
+
+  - id: wake_indicator
+    mode: restart
+    then:
+      - script.execute: rgb_ack_pulse
+      - script.execute: rgb_supply_off
+
+  - id: sample_battery
+    mode: restart
+    then:
+      - switch.turn_on: vdiv_power
+      - delay: 20ms
+      - component.update: battery_adc
+      - switch.turn_off: vdiv_power
+      - component.update: battery_level
+
+  - id: stay_awake_after_wake
+    mode: single
+    then:
+      - logger.log:
+          level: INFO
+          format: "GPIO wake — staying up for ${awake_after_button_ms}"
+      - delay: ${awake_after_button_ms}
+      - script.execute: rgb_supply_off
+      - deep_sleep.allow: deep_sleep_id
+
+  - id: handle_button_press
+    mode: single
+    then:
+      - deep_sleep.prevent: deep_sleep_id
+      - if:
+          condition:
+            lambda: "return id(defer_button_led_to_late_boot);"
+          then:
+            - logger.log:
+                level: INFO
+                format: "Button action — GPIO wake; LED/awake handled by late boot"
+          else:
+            - logger.log:
+                level: INFO
+                format: "Button action — preventing deep sleep, running indicator"
+            - script.execute: rgb_ack_pulse
+            - logger.log:
+                level: INFO
+                format: "Button action — RGB supply stays on for ${awake_after_button_ms}"
+            - delay: ${awake_after_button_ms}
+            - logger.log:
+                level: INFO
+                format: "Button action — awake window done, allowing deep sleep"
+            - script.execute: rgb_supply_off
+            - deep_sleep.allow: deep_sleep_id
+
+  - id: prepare_deep_sleep
+    mode: restart
+    then:
+      - logger.log:
+          level: INFO
+          format: "Sleep Now — entering deep sleep"
+      - deep_sleep.enter: deep_sleep_id
+
+  - id: log_button_state
+    mode: restart
+    then:
+      - lambda: |-
+          if (id(btn1).has_state()) {
+            ESP_LOGI("button", "D1 (SW1) reads %s (inverted/active-low: ON=pressed)",
+                     id(btn1).state ? "ON/pressed" : "OFF/released");
+          } else {
+            ESP_LOGW("button", "D1 (SW1) has no state yet");
+          }
+
+interval:
+  - interval: 5min
+    then:
+      - script.execute: sample_battery
+
+  - interval: 3s
+    then:
+      - script.execute: log_button_state
