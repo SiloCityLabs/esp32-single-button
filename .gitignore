@@ -2,3 +2,5 @@
 .esphome/
 *.bin
 __pycache__/
+.cursor/
+*.zip
