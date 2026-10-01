@@ -8,13 +8,15 @@
 // corners sit at r ≈ 28.3 mm. The switch is dead center. The XIAO is on
 // the back at the USB end (about y = 2 to 23).
 //
-// The cell's long side runs along X, same direction as the PCB width
-// (~40 mm). The 25 mm side runs along Y, under the board and below the
-// module. The base is a circle large enough for that rectangle. The USB
-// cut is a tunnel in to the connector, deeper than the wall.
+// The cell's long side runs along X, same direction as the PCB width.
+// outer_r is 32. The board, module, and battery are shifted toward USB
+// only as far as that circle allows. The USB cut is a tunnel out through
+// the wall.
 
 // Body
-outer_r = 36.4;
+outer_r = 32;
+// Board and module, toward USB from the switch. The USB end needs wall left.
+stack_y = 6;
 floor_t = 1.5;
 pcb_t = 1.6;
 pcb_gap = 0.45;
@@ -23,7 +25,7 @@ pcb_gap = 0.45;
 // 38 mm across the PCB width, 25 mm toward the tail of the board, plus wiggle.
 battery_x = 38.0;
 battery_y = 25.0;
-battery_top = 0.6;    // +Y edge, just below the XIAO pocket
+battery_top = 0.6;    // gap from the module's -Y edge to the cell
 battery_d = 8;     // under the PCB; 8 mm cell plus clearance
 
 // XIAO
@@ -42,15 +44,15 @@ tip_straight = 1.6;
 stem_d = 5.0;
 stem_len = 5.4;       // tip contact up to the underside of the flange, at rest
 travel = 1.0;
-flange_r = 30;
+flange_r = 26.0;
 flange_t = 2.0;
-face_r = 26.0;
+face_r = 23.0;
 face_h = 2.4;         // flat top, stands proud of the clamp lip
-opening_r = 27;     // clamp hole the face passes through
+opening_r = 24.0;     // clamp hole the face passes through
 
 // Clamp
 lip_t = 1.8;
-screw_r = 32.5;
+screw_r = 28.7;      // head stays inside outer_r, shaft stays outside the flange
 screw_angles = [-210, 270, -330];
 screw_clear_d = 2.8;
 screw_pilot_d = 2.3;
@@ -90,38 +92,41 @@ board_pts = [
 ];
 
 module board_2d() {
-  polygon(board_pts);
+  translate([0, stack_y])
+    polygon(board_pts);
 }
 
 module battery_2d() {
-  translate([0, (battery_top - battery_y / 2)+9])
+  // +Y edge sits battery_top below the module.
+  translate([0, stack_y - battery_top - battery_y / 2])
     square([battery_x, battery_y], center = true);
 }
 
 module xiao_2d() {
-  translate([0, (xiao_body_y0 + xiao_body_y1) / 2])
-    square([xiao_w, xiao_body_y1 - xiao_body_y0], center = true);
-  translate([0, (xiao_body_y1 - 1.2 + xiao_usb_y1) / 2])
-    square([xiao_usb_w, xiao_usb_y1 - (xiao_body_y1 - 1.2)], center = true);
+  translate([0, stack_y]) {
+    translate([0, (xiao_body_y0 + xiao_body_y1) / 2])
+      square([xiao_w, xiao_body_y1 - xiao_body_y0], center = true);
+    translate([0, (xiao_body_y1 - 1.2 + xiao_usb_y1) / 2])
+      square([xiao_usb_w, xiao_usb_y1 - (xiao_body_y1 - 1.2)], center = true);
+  }
 }
 
 module base() {
   difference() {
-    cylinder(r = outer_r, h = seat_z);
+    base_body();
     translate([0, 0, floor_t])
       linear_extrude(battery_d + eps + 10) //extrude all the way out
         battery_2d();
-    translate([0, 10, pcb_z - xiao_d])
+    translate([0, 0, pcb_z - xiao_d])
       linear_extrude(xiao_d + eps)
         xiao_2d();
-    translate([0, 10, pcb_z])
+    translate([0, 0, pcb_z])
       linear_extrude(seat_z - pcb_z + eps)
         offset(delta = pcb_gap) board_2d();
     usb_tunnel();
     wire_notch();
     finger_scoop();
     screw_pilots();
-    base_chamfer();
   }
   // pcb_tabs();
 }
@@ -130,24 +135,24 @@ module base() {
 module pcb_tabs() {
   z0 = pcb_top + 0.35;
   h = 1.3;
-  translate([-21.2, -5, z0]) cube([1.8, 10, h]);
-  translate([19.4, -5, z0]) cube([1.8, 10, h]);
-  // translate([-6, -22.9, z0]) cube([12, 1.8, h]); //3rd tab, lets just exclude for now, maybe later?
+  translate([-21.2, stack_y - 5, z0]) cube([1.8, 10, h]);
+  translate([19.4, stack_y - 5, z0]) cube([1.8, 10, h]);
+  // translate([-6, stack_y - 22.9, z0]) cube([12, 1.8, h]); //3rd tab, lets just exclude for now, maybe later?
 }
 
 module usb_tunnel() {
   cz = pcb_z - usb_drop;
-  translate([-usb_w / 2, usb_y0, cz - usb_h / 2])
-    cube([usb_w, outer_r - usb_y0 + 2, usb_h]);
+  translate([-usb_w / 2, usb_y0 + stack_y, cz - usb_h / 2])
+    cube([usb_w, outer_r - (usb_y0 + stack_y) + 2, usb_h]);
 }
 
 module wire_notch() {
-  translate([-19, 5, pcb_z - 3.2])
+  translate([-19, stack_y - 5, pcb_z - 3.2])
     cube([6, 15, 3.2 + eps]);
 }
 
 module finger_scoop() {
-  translate([0, battery_top - battery_y + 6.5, floor_t - eps])
+  translate([0, stack_y - battery_top - battery_y + 6.5, floor_t - eps])
     cylinder(d = 10, h = 1.15);
 }
 
@@ -158,13 +163,18 @@ module screw_pilots() {
         cylinder(d = screw_pilot_d, h = screw_pilot_h + eps);
 }
 
-module base_chamfer() {
-  h = 2;
-  translate([0, 0, -eps])
+// Outer wall. The bottom edge is a quarter-round of radius rad.
+module base_body() {
+  rad = 2;
+  minkowski() {
+    translate([0, 0, rad])
+      cylinder(r = outer_r - rad, h = seat_z - rad);
     difference() {
-      cylinder(r = outer_r + 1, h = h);
-      cylinder(r1 = outer_r - h, r2 = outer_r + 1, h = h + eps);
+      sphere(r = rad);
+      translate([-rad * 2, -rad * 2, 0])
+        cube([rad * 4, rad * 4, rad * 2]);
     }
+  }
 }
 
 module clamp() {
