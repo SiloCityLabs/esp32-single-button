@@ -15,16 +15,16 @@
 
 // Body
 outer_r = 36.4;
-floor_t = 2.0;
+floor_t = 1.5;
 pcb_t = 1.6;
 pcb_gap = 0.45;
 
 // Battery
 // 38 mm across the PCB width, 25 mm toward the tail of the board, plus wiggle.
-battery_x = 39.0;
-battery_y = 26.0;
+battery_x = 38.0;
+battery_y = 25.0;
 battery_top = 0.6;    // +Y edge, just below the XIAO pocket
-battery_d = 10.2;     // under the PCB; 8 mm cell plus clearance
+battery_d = 8;     // under the PCB; 8 mm cell plus clearance
 
 // XIAO
 xiao_w = 18.8;
@@ -32,12 +32,12 @@ xiao_body_y0 = 0;
 xiao_body_y1 = 22.4;
 xiao_usb_w = 12.0;
 xiao_usb_y1 = 23.3;
-xiao_d = 5.6;
+xiao_d = 3.5;
 
 // Button
 switch_h = 1.8;
 tip_gap = 0.35;
-tip_d = 2.6;
+tip_d = 4;
 tip_straight = 1.6;
 stem_d = 5.0;
 stem_len = 5.4;       // tip contact up to the underside of the flange, at rest
@@ -94,7 +94,7 @@ module board_2d() {
 }
 
 module battery_2d() {
-  translate([0, battery_top - battery_y / 2])
+  translate([0, (battery_top - battery_y / 2)+9])
     square([battery_x, battery_y], center = true);
 }
 
@@ -109,7 +109,7 @@ module base() {
   difference() {
     cylinder(r = outer_r, h = seat_z);
     translate([0, 0, floor_t])
-      linear_extrude(battery_d + eps + 10)
+      linear_extrude(battery_d + eps + 10) //extrude all the way out
         battery_2d();
     translate([0, 10, pcb_z - xiao_d])
       linear_extrude(xiao_d + eps)
@@ -142,7 +142,7 @@ module usb_tunnel() {
 }
 
 module wire_notch() {
-  translate([-19.5, -3.5, pcb_z - 3.2])
+  translate([-19, 5, pcb_z - 3.2])
     cube([6, 15, 3.2 + eps]);
 }
 
@@ -159,7 +159,7 @@ module screw_pilots() {
 }
 
 module base_chamfer() {
-  h = 1.1;
+  h = 2;
   translate([0, 0, -eps])
     difference() {
       cylinder(r = outer_r + 1, h = h);
