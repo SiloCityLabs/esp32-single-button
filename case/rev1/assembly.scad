@@ -1,10 +1,11 @@
 // Stacked preview. Not a printable part.
 //   openscad -D 'cutaway=true' -o assembly.png assembly.scad
 include <common.scad>
-$fn = 48;
 
 cutaway = false;
 show_board = true;
+
+$fn = 60;
 
 module stacked() {
   color("white") base();
@@ -18,9 +19,11 @@ module stacked() {
 }
 
 if (cutaway)
-  difference() {
-    stacked();
-    translate([-80, 0, -5]) cube([80, 120, 80]);
-  }
+  color("grey")
+    difference() {
+      stacked();
+      translate([-80, 0, -5]) cube([80, 120, 80]);
+    }
 else
-  stacked();
+  color("grey")
+    stacked();

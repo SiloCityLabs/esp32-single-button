@@ -14,7 +14,7 @@
 // the wall.
 
 // Body
-outer_r = 32;
+outer_r = 31;
 // Board and module, toward USB from the switch. The USB end needs wall left.
 stack_y = 6;
 floor_t = 1.5;
@@ -24,8 +24,8 @@ pcb_gap = 0.45;
 // Battery
 // 38 mm across the PCB width, 25 mm toward the tail of the board, plus wiggle.
 battery_x = 38.0;
-battery_y = 25.0;
-battery_top = 0.6;    // gap from the module's -Y edge to the cell
+battery_y = 25.1;
+battery_top = -0.01;    // Slight overlap to eliminate the wall between the battery and the module
 battery_d = 8;     // under the PCB; 8 mm cell plus clearance
 
 // XIAO
@@ -41,31 +41,29 @@ switch_h = 1.8;
 tip_gap = 0.35;
 tip_d = 4;
 tip_straight = 1.6;
-stem_d = 5.0;
-stem_len = 5.4;       // tip contact up to the underside of the flange, at rest
 travel = 1.0;
 flange_r = 26.0;
 flange_t = 2.0;
 face_r = 23.0;
-face_h = 2.4;         // flat top, stands proud of the clamp lip
-opening_r = 24.0;     // clamp hole the face passes through
+face_h = 3.4;         // flat top, stands proud of the clamp lip
+opening_r = 23.0;     // clamp hole the face passes through
 
 // Clamp
 lip_t = 1.8;
-screw_r = 28.7;      // head stays inside outer_r, shaft stays outside the flange
+screw_r = 27;      // head stays inside outer_r, shaft stays outside the flange
 screw_angles = [-210, 270, -330];
-screw_clear_d = 2.8;
-screw_pilot_d = 2.3;
+screw_clear_d = 3.3;
+screw_pilot_d = 3.2;
 screw_pilot_h = 8.0;
 screw_head_d = 5.4;
 screw_head_h = 1.5;
 
 // USB
 // Tunnel from the connector (inside the circle) out through the wall.
-usb_w = 15.0;
-usb_h = 9.0;
+usb_w = 12.0;
+usb_h = 7.0;
 usb_drop = 2.35;
-usb_y0 = 21.6;
+usb_y0 = 12;
 
 eps = 0.05;
 
@@ -74,8 +72,7 @@ pcb_z = floor_t + battery_d;
 pcb_top = pcb_z + pcb_t;
 switch_top = pcb_top + switch_h;
 tip_rest = switch_top + tip_gap;
-flange_bottom_rest = tip_rest + stem_len;
-seat_z = flange_bottom_rest - travel;
+seat_z = tip_rest - travel;
 lip_z = flange_t + travel;                 // lip underside, relative to the clamp bottom
 clamp_h = lip_z + lip_t;
 flange_clear_r = flange_r + 0.55;
@@ -125,7 +122,6 @@ module base() {
         offset(delta = pcb_gap) board_2d();
     usb_tunnel();
     wire_notch();
-    finger_scoop();
     screw_pilots();
   }
   // pcb_tabs();
@@ -147,13 +143,8 @@ module usb_tunnel() {
 }
 
 module wire_notch() {
-  translate([-19, stack_y - 5, pcb_z - 3.2])
-    cube([6, 15, 3.2 + eps]);
-}
-
-module finger_scoop() {
-  translate([0, stack_y - battery_top - battery_y + 6.5, floor_t - eps])
-    cylinder(d = 10, h = 1.15);
+  translate([13, stack_y - 3, pcb_z - 8])
+    cube([6, 15, 8 + eps]);
 }
 
 module screw_pilots() {
@@ -203,16 +194,21 @@ module screw_clearance() {
 }
 
 module button() {
-  translate([0, 0, flange_bottom_rest])
-    cylinder(r = flange_r, h = flange_t);
-  translate([0, 0, flange_bottom_rest + flange_t - eps])
-    cylinder(r = face_r, h = face_h);
-  translate([0, 0, tip_rest])
-    cylinder(d = tip_d, h = tip_straight + eps);
-  translate([0, 0, tip_rest + tip_straight])
-    cylinder(d = stem_d, h = flange_bottom_rest - tip_rest - tip_straight + eps);
-  // Dots over the LED, same idea as the speaker holes on an Easy Button.
-  // Subtracted by the caller? Kept as solid here; holes are in button_solid().
+  rad = 0.5;
+
+  minkowski() {
+    union() {
+      translate([0, 0, tip_rest])
+        cylinder(r = flange_r - (rad * 2), h = flange_t - (rad * 2));
+      translate([0, 0, tip_rest + flange_t - eps])
+        cylinder(r = face_r - (rad * 2), h = face_h - (rad * 2));
+      translate([0, 0, tip_rest])
+        cylinder(d = tip_d - 2*rad, h = tip_straight - rad + eps);
+      translate([0, 0, tip_rest + tip_straight])
+        cylinder(d = - 2*rad, h = tip_rest - tip_rest - tip_straight - rad + eps);
+    }
+    sphere(r = rad);
+  }
 }
 
 module button_solid() {
@@ -224,7 +220,7 @@ module button_solid() {
 
 module led_dots() {
   for (p = [[0, -6.2], [-2.3, -5.4], [2.3, -5.4], [-4.2, -4.0], [4.2, -4.0]])
-    translate([p[0], p[1], flange_bottom_rest + flange_t + 1.2])
+    translate([p[0], p[1], tip_rest + flange_t + 1.2])
       cylinder(d = 1.5, h = face_h);
 }
 

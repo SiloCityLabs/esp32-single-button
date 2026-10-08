@@ -60,3 +60,7 @@ flash-wait-c6: ## Flash C6 repeatedly when /dev/ttyACM0 appears
 		fi; \
 		while [[ -e $$PORT ]]; do sleep 0.5; done; \
 	done
+
+stl: ## Generate STL files
+	rm -rf case/rev1/print.stl && \
+	openscad -o case/rev1/print.stl -D '$fn=200' case/rev1/print.scad

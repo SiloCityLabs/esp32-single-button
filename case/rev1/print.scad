@@ -2,11 +2,12 @@
 // The button is flipped so the flat face is on the bed, sitting below the base.
 //   openscad -o print.png print.scad
 include <common.scad>
-$fn = 50;
+
+$fn=50;
 
 gap = 10;
 // Flat face of the button, in assembly coordinates.
-face_top = flange_bottom_rest + flange_t + face_h - eps;
+face_top = tip_rest + flange_t + face_h - eps;
 
 module base_print() {
   base();
