@@ -131,9 +131,8 @@ module base() {
 module pcb_tabs() {
   z0 = pcb_top + 0.35;
   h = 0.75;
-  translate([-22, stack_y - 5, z0]) cube([1.8, 10, h]);
-  translate([20, stack_y - 5, z0]) cube([1.8, 10, h]);
-  // translate([-6, stack_y - 22.9, z0]) cube([12, 1.8, h]); //3rd tab, lets just exclude for now, maybe later?
+  translate([-21.6, stack_y - 5, z0]) cube([1.8, 10, h]);
+  translate([19.8, stack_y - 5, z0]) cube([1.8, 10, h]);
 }
 
 module usb_tunnel() {
@@ -170,10 +169,21 @@ module base_body() {
 
 module clamp() {
   difference() {
-    cylinder(r = outer_r, h = clamp_h);
+    union() {
+      cylinder(r = outer_r, h = clamp_h);
+    }
     // Below the lip the flange has to move.
     translate([0, 0, -eps])
-      cylinder(r = flange_clear_r, h = lip_z + eps);
+      difference() {
+        cylinder(r = flange_clear_r, h = lip_z + eps);
+        // Cut out alignment pin so it doesnt difference
+        for (a = screw_angles)
+          rotate([0, 0, a])
+            translate([screw_r, 0, 0]) {
+              translate([0, 0, -eps])
+                cylinder(d = screw_clear_d+4, h = clamp_h);
+            }
+      }
     // Opening the face comes through.
     translate([0, 0, lip_z - eps])
       cylinder(r = opening_r, h = lip_t + 2 * eps);
@@ -210,6 +220,12 @@ module button_solid() {
   difference() {
     button();
     led_opening();
+    for (a = screw_angles)
+      rotate([0, 0, a])
+        translate([screw_r, 0, 0]) {
+          translate([0, 0, -eps])
+            cylinder(d = screw_clear_d+4.5, h = 15);
+        }
   }
 }
 
