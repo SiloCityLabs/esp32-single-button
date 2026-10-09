@@ -62,5 +62,10 @@ flash-wait-c6: ## Flash C6 repeatedly when /dev/ttyACM0 appears
 	done
 
 stl: ## Generate STL files
-	rm -rf case/rev1/print.stl && \
-	openscad -o case/rev1/print.stl -D '$fn=200' case/rev1/print.scad
+	rm -rf case/rev1/*.stl && \
+	openscad -o case/rev1/base.stl case/rev1/base.scad && \
+	openscad -o case/rev1/clamp.stl case/rev1/clamp.scad && \
+	openscad -o case/rev1/button.stl case/rev1/button.scad
+
+
+3mf: ## Generate 3MF files

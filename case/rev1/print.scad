@@ -3,7 +3,7 @@
 //   openscad -o print.png print.scad
 include <common.scad>
 
-$fn=50;
+$fn=200;
 
 gap = 10;
 // Flat face of the button, in assembly coordinates.

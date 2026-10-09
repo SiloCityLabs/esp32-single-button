@@ -29,7 +29,7 @@ battery_top = -0.01;    // Slight overlap to eliminate the wall between the batt
 battery_d = 8;     // under the PCB; 8 mm cell plus clearance
 
 // XIAO
-xiao_w = 18.8;
+xiao_w = 20;
 xiao_body_y0 = 0;
 xiao_body_y1 = 22.4;
 xiao_usb_w = 12.0;
@@ -43,25 +43,25 @@ tip_d = 4;
 tip_straight = 1.6;
 travel = 1.0;
 flange_r = 26.0;
-flange_t = 2.0;
+flange_t = 1.25;
 face_r = 23.0;
 face_h = 3.4;         // flat top, stands proud of the clamp lip
-opening_r = 23.0;     // clamp hole the face passes through
+opening_r = 23.15;     // clamp hole the face passes through
 
 // Clamp
 lip_t = 1.8;
 screw_r = 27;      // head stays inside outer_r, shaft stays outside the flange
 screw_angles = [-210, 270, -330];
 screw_clear_d = 3.3;
-screw_pilot_d = 3.2;
+screw_pilot_d = 3;
 screw_pilot_h = 8.0;
 screw_head_d = 5.4;
 screw_head_h = 1.5;
 
 // USB
 // Tunnel from the connector (inside the circle) out through the wall.
-usb_w = 12.0;
-usb_h = 7.0;
+usb_w = 10.0;
+usb_h = 5.0;
 usb_drop = 2.35;
 usb_y0 = 12;
 
@@ -124,15 +124,15 @@ module base() {
     wire_notch();
     screw_pilots();
   }
-  // pcb_tabs();
+  pcb_tabs();
 }
 
 // Press the board past these. They keep it from falling out when the cap is off.
 module pcb_tabs() {
   z0 = pcb_top + 0.35;
-  h = 1.3;
-  translate([-21.2, stack_y - 5, z0]) cube([1.8, 10, h]);
-  translate([19.4, stack_y - 5, z0]) cube([1.8, 10, h]);
+  h = 0.75;
+  translate([-22, stack_y - 5, z0]) cube([1.8, 10, h]);
+  translate([20, stack_y - 5, z0]) cube([1.8, 10, h]);
   // translate([-6, stack_y - 22.9, z0]) cube([12, 1.8, h]); //3rd tab, lets just exclude for now, maybe later?
 }
 
@@ -194,34 +194,28 @@ module screw_clearance() {
 }
 
 module button() {
-  rad = 0.5;
-
-  minkowski() {
-    union() {
-      translate([0, 0, tip_rest])
-        cylinder(r = flange_r - (rad * 2), h = flange_t - (rad * 2));
-      translate([0, 0, tip_rest + flange_t - eps])
-        cylinder(r = face_r - (rad * 2), h = face_h - (rad * 2));
-      translate([0, 0, tip_rest])
-        cylinder(d = tip_d - 2*rad, h = tip_straight - rad + eps);
-      translate([0, 0, tip_rest + tip_straight])
-        cylinder(d = - 2*rad, h = tip_rest - tip_rest - tip_straight - rad + eps);
-    }
-    sphere(r = rad);
+  union() {
+    translate([0, 0, tip_rest])
+      cylinder(r = flange_r, h = flange_t);
+    translate([0, 0, tip_rest + flange_t - eps])
+      cylinder(r = face_r, h = face_h);
+    translate([0, 0, tip_rest])
+      cylinder(d = tip_d, h = tip_straight + eps);
+    translate([0, 0, tip_rest + tip_straight])
+      cylinder(d = tip_d, h = tip_rest - tip_rest - tip_straight + eps);
   }
 }
 
 module button_solid() {
   difference() {
     button();
-    // led_dots();
+    led_opening();
   }
 }
 
-module led_dots() {
-  for (p = [[0, -6.2], [-2.3, -5.4], [2.3, -5.4], [-4.2, -4.0], [4.2, -4.0]])
-    translate([p[0], p[1], tip_rest + flange_t + 1.2])
-      cylinder(d = 1.5, h = face_h);
+module led_opening() {
+  translate([0, 0, -5.75])
+    cylinder(d = 40, h = 20);
 }
 
 module pcb_ghost() {
