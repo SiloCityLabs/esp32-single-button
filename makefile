@@ -7,7 +7,7 @@ else
     MKDIR     = mkdir -p "$(@D)"
 endif
 
-.PHONY: help setup build build-c3 build-c6 flash-c3 flash-c6 config-c3 config-c6 logs-c6 flash-wait-c6 stl 3mf rev1 retro_futurist
+.PHONY: help setup build build-c3 build-c6 flash-c3 flash-c6 config-c3 config-c6 logs-c6 flash-wait-c6 stl 3mf rev1 retro_futurist faceted
 
 help:
 	@echo "Available targets:"
@@ -91,7 +91,9 @@ rev1: case/rev1/models/base.stl case/rev1/models/clamp.stl case/rev1/models/butt
 
 retro_futurist: case/retro_futurist/models/base.stl case/retro_futurist/models/clamp.stl case/retro_futurist/models/button.stl ## Build retro_futurist STLs
 
+faceted: case/faceted/models/base.stl case/faceted/models/clamp.stl case/faceted/models/button.stl ## Build faceted STLs
+
 # Global target
-stl: rev1 retro_futurist ## Build all style STLs
+stl: rev1 retro_futurist faceted ## Build all style STLs
 
 3mf: ## Generate 3MF files

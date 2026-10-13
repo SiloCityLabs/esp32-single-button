@@ -1,0 +1,26 @@
+include <design.scad>
+
+$fn = 120;
+
+gap = 10;
+face_top = tip_rest + flange_t + face_h - eps;
+
+module base_print() {
+  faceted_base();
+}
+
+module clamp_print() {
+  rotate([180, 0, 180])
+    translate([0, 0, -clamp_h])
+      faceted_clamp();
+}
+
+module button_print() {
+  rotate([180, 0, 0])
+    translate([0, 0, -face_top])
+      faceted_button();
+}
+
+color("#2B2B2B") base_print();
+color("#3C3C3C") translate([2 * outer_r + gap, 0, 0]) clamp_print();
+color("#1E1E1E") translate([0, -(outer_r + flange_r + gap), 0]) button_print();
