@@ -7,7 +7,7 @@ else
     MKDIR     = mkdir -p "$(@D)"
 endif
 
-.PHONY: help setup build build-c3 build-c6 flash-c3 flash-c6 config-c3 config-c6 logs-c6 flash-wait-c6 stl 3mf rev1
+.PHONY: help setup build build-c3 build-c6 flash-c3 flash-c6 config-c3 config-c6 logs-c6 flash-wait-c6 stl 3mf rev1 retro_futurist
 
 help:
 	@echo "Available targets:"
@@ -89,7 +89,9 @@ case/%/models/button.stl: case/%/button.scad
 # Per-style targets
 rev1: case/rev1/models/base.stl case/rev1/models/clamp.stl case/rev1/models/button.stl ## Build rev1 STLs
 
-# Global target to build all case styles
-stl: rev1 ## Build all style STLs
+retro_futurist: case/retro_futurist/models/base.stl case/retro_futurist/models/clamp.stl case/retro_futurist/models/button.stl ## Build retro_futurist STLs
+
+# Global target
+stl: rev1 retro_futurist ## Build all style STLs
 
 3mf: ## Generate 3MF files
