@@ -1,7 +1,7 @@
 // Perimeter ring. Holds the cap by its rim.
 // Oriented lip-down on the bed. No supports.
 //   openscad -o clamp.stl clamp.scad
-include <common.scad>
+include <../assets/common.scad>
 
 $fn = 200;
 
