@@ -1,10 +1,19 @@
-.PHONY: help
-SHELL := /bin/bash
+ifeq ($(OS),Windows_NT)
+    OPENSCAD ?= "C:/Program Files/OpenSCAD (Nightly)/openscad.exe"
+    MKDIR    := powershell -NoProfile -Command "if (!(Test-Path '$(@D)')) { New-Item -ItemType Directory -Force -Path '$(@D)' | Out-Null }"
+else
+    SHELL    := /bin/bash
+    OPENSCAD ?= openscad
+    MKDIR    := mkdir -p "$(@D)"
+endif
+
+.PHONY: help setup build build-c3 build-c6 flash-c3 flash-c6 config-c3 config-c6 logs-c6 flash-wait-c6 stl 3mf base_rev1 rev2
 
 help:
 	@echo "Available targets:"
-	@echo
-	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@echo "  make base_rev1    - Build STLs for base_rev1"
+	@echo "  make rev2         - Build STLs for rev2"
+	@echo "  make stl          - Build all variant STLs"
 	@echo
 
 setup: ## Create venv and install ESPHome
@@ -52,20 +61,35 @@ flash-wait-c6: ## Flash C6 repeatedly when /dev/ttyACM0 appears
 	echo "Waiting for $$PORT (Ctrl+C to stop)..."; \
 	while true; do \
 		while [[ ! -e $$PORT ]]; do sleep 0.5; done; \
-		echo "[$$(date '+%H:%M:%S')] Device detected — flashing C6..."; \
+		echo "Device detected — flashing C6..."; \
 		if esphome upload $$YAML --device $$PORT; then \
-			echo "[$$(date '+%H:%M:%S')] Flash OK — unplug for next unit"; \
+			echo "Flash OK — unplug for next unit"; \
 		else \
-			echo "[$$(date '+%H:%M:%S')] Flash FAILED"; \
+			echo "Flash FAILED"; \
 		fi; \
 		while [[ -e $$PORT ]]; do sleep 0.5; done; \
 	done
 
-stl: ## Generate STL files
-	rm -rf case/rev1/*.stl && \
-	openscad -o case/rev1/base.stl case/rev1/base.scad && \
-	openscad -o case/rev1/clamp.stl case/rev1/clamp.scad && \
-	openscad -o case/rev1/button.stl case/rev1/button.scad
+# ==============================================================================
+# OpenSCAD Rules
+# ==============================================================================
 
+case/variants/%/models/base.stl: case/variants/%/base.scad
+	@powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(@D)' | Out-Null"
+	$(OPENSCAD) -o "$@" "$<"
+
+case/variants/%/models/clamp.stl: case/variants/%/clamp.scad
+	@powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(@D)' | Out-Null"
+	$(OPENSCAD) -o "$@" "$<"
+
+case/variants/%/models/button.stl: case/variants/%/button.scad
+	@powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(@D)' | Out-Null"
+	$(OPENSCAD) -o "$@" "$<"
+
+base_rev1: case/variants/base_rev1/models/base.stl case/variants/base_rev1/models/clamp.stl case/variants/base_rev1/models/button.stl ## Build base_rev1 STLs
+
+rev2: case/variants/rev2/models/base.stl case/variants/rev2/models/clamp.stl case/variants/rev2/models/button.stl ## Build rev2 STLs
+
+stl: base_rev1 rev2 ## Build all variant STLs
 
 3mf: ## Generate 3MF files
