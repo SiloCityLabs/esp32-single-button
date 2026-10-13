@@ -1,13 +1,13 @@
 ifeq ($(OS),Windows_NT)
     OPENSCAD ?= "C:/Program Files/OpenSCAD (Nightly)/openscad.exe"
-    MKDIR    := powershell -NoProfile -Command "if (!(Test-Path '$(@D)')) { New-Item -ItemType Directory -Force -Path '$(@D)' | Out-Null }"
+    MKDIR     = powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(@D)' | Out-Null"
 else
     SHELL    := /bin/bash
     OPENSCAD ?= openscad
-    MKDIR    := mkdir -p "$(@D)"
+    MKDIR     = mkdir -p "$(@D)"
 endif
 
-.PHONY: help setup build build-c3 build-c6 flash-c3 flash-c6 config-c3 config-c6 logs-c6 flash-wait-c6 stl 3mf base_rev1 rev2
+.PHONY: help setup build build-c3 build-c6 flash-c3 flash-c6 config-c3 config-c6 logs-c6 flash-wait-c6 stl 3mf rev1
 
 help:
 	@echo "Available targets:"
@@ -74,22 +74,22 @@ flash-wait-c6: ## Flash C6 repeatedly when /dev/ttyACM0 appears
 # OpenSCAD Rules
 # ==============================================================================
 
-case/variants/%/models/base.stl: case/variants/%/base.scad
-	@powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(@D)' | Out-Null"
+case/%/models/base.stl: case/%/base.scad
+	@$(MKDIR)
 	$(OPENSCAD) -o "$@" "$<"
 
-case/variants/%/models/clamp.stl: case/variants/%/clamp.scad
-	@powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(@D)' | Out-Null"
+case/%/models/clamp.stl: case/%/clamp.scad
+	@$(MKDIR)
 	$(OPENSCAD) -o "$@" "$<"
 
-case/variants/%/models/button.stl: case/variants/%/button.scad
-	@powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(@D)' | Out-Null"
+case/%/models/button.stl: case/%/button.scad
+	@$(MKDIR)
 	$(OPENSCAD) -o "$@" "$<"
 
-base_rev1: case/variants/base_rev1/models/base.stl case/variants/base_rev1/models/clamp.stl case/variants/base_rev1/models/button.stl ## Build base_rev1 STLs
+# Per-style targets
+rev1: case/rev1/models/base.stl case/rev1/models/clamp.stl case/rev1/models/button.stl ## Build rev1 STLs
 
-rev2: case/variants/rev2/models/base.stl case/variants/rev2/models/clamp.stl case/variants/rev2/models/button.stl ## Build rev2 STLs
-
-stl: base_rev1 rev2 ## Build all variant STLs
+# Global target to build all case styles
+stl: rev1 ## Build all style STLs
 
 3mf: ## Generate 3MF files

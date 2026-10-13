@@ -50,4 +50,4 @@ make stl
 make base_rev1
 ```
 
-> Generated `.stl` files output directly into each variant's `models/` directory (`case/variants/<variant>/models/`).
+> Generated `.stl` files output directly into each variant's `models/` directory (`case/<variant>/models/`).
