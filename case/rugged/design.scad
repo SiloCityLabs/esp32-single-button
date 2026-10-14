@@ -17,10 +17,10 @@ half_panel_ang  = panel_span / 2;
 // Fastener locations: 270 deg (rear), 30 deg, 150 deg
 rugged_screw_angles = [270, 30, 150];
 
-// Button flange pocket clearance radius
+// Fillet and clearance parameters
+base_fillet_r  = 2.0;
+r_base_bot     = outer_r - base_fillet_r;
 clamp_flange_r = is_undef(flange_r) ? (opening_r + 1.8) : (flange_r + 0.5);
-
-// Outer diameter of fastener reinforcement bosses on clamp underside
 screw_boss_d   = screw_head_d + 2.2;
 
 // ---------------------------------------------------------
@@ -48,7 +48,7 @@ module panel_arc_groove(z, ang_span = 21.6) {
 
 // Three horizontal accent grooves per panel
 module base_horizontal_lines() {
-  z_mid  = (2.0 + seat_z) / 2;
+  z_mid  = (base_fillet_r + seat_z) / 2;
   z_step = 2.2;
   arc_w  = panel_span * 0.60;
 
@@ -62,24 +62,24 @@ module base_horizontal_lines() {
   }
 }
 
+// 2D radial profile for armor posts following the bottom fillet
+function post_profile_points(overlap = 0) = concat(
+  [[outer_r + post_protrusion, seat_z]],
+  [[outer_r + post_protrusion, base_fillet_r]],
+  [for (a = [80 : -10 : 0]) [(r_base_bot + post_protrusion) + base_fillet_r * sin(a), base_fillet_r - base_fillet_r * cos(a)]],
+  [for (a = [0 : 10 : 90]) [(r_base_bot - overlap) + base_fillet_r * sin(a), base_fillet_r - base_fillet_r * cos(a)]],
+  [[outer_r - overlap, seat_z]]
+);
+
 // Protruding armor posts around the base perimeter
 module rugged_posts(overlap = 0) {
-  r_post  = outer_r + post_protrusion;
-  r_start = outer_r - overlap;
-
   difference() {
     union() {
       for (i = [0 : num_posts - 1]) {
         ang = 90 + i * post_step;
         rotate([0, 0, ang - half_post_ang])
           rotate_extrude(angle = post_span, $fn = 80)
-            polygon([
-              [r_start,       0],
-              [r_post - 2.0,  0],
-              [r_post,        2.0],
-              [r_post,        seat_z],
-              [r_start,       seat_z]
-            ]);
+            polygon(post_profile_points(overlap = overlap));
       }
     }
     usb_tunnel();
@@ -157,15 +157,12 @@ module rugged_clamp_black() {
   difference() {
     cylinder(r = outer_r, h = clamp_h, $fn = 120);
 
-    // Central through-bore for button actuator
     translate([0, 0, -eps])
       cylinder(r = opening_r, h = clamp_h + 2 * eps, $fn = 80);
 
-    // Flange pocket on clamp underside
     translate([0, 0, -eps])
       cylinder(r = clamp_flange_r, h = lip_z + eps, $fn = 80);
 
-    // Clearance cutouts for armor post positions
     for (i = [0 : num_posts - 1]) {
       ang = 90 + i * post_step;
       rotate([0, 0, ang - half_post_ang])
@@ -184,7 +181,6 @@ module rugged_clamp_red(overlap = 0) {
 
   difference() {
     union() {
-      // Elevated armor posts
       for (i = [0 : num_posts - 1]) {
         ang = 90 + i * post_step;
         rotate([0, 0, ang - half_post_ang])
@@ -199,7 +195,6 @@ module rugged_clamp_red(overlap = 0) {
             ]);
       }
 
-      // Cylindrical reinforcement bosses enclosing the fastener holes
       for (a = rugged_screw_angles) {
         rotate([0, 0, a])
           translate([screw_r, 0, 0])
@@ -207,11 +202,9 @@ module rugged_clamp_red(overlap = 0) {
       }
     }
 
-    // Central button opening
     translate([0, 0, -eps])
       cylinder(r = opening_r, h = clamp_h + clamp_lift + 2 * eps, $fn = 80);
 
-    // Flange pocket excluding the screw boss cylinders to keep bosses circular
     difference() {
       translate([0, 0, -eps])
         cylinder(r = clamp_flange_r, h = lip_z + eps, $fn = 80);
@@ -223,7 +216,6 @@ module rugged_clamp_red(overlap = 0) {
       }
     }
 
-    // Counterbore and clearance holes for active fasteners
     for (a = rugged_screw_angles) {
       rotate([0, 0, a])
         translate([screw_r, 0, 0]) {
