@@ -1,7 +1,7 @@
 // Circular base. Print floor-down. No supports.
-//   openscad -o base.stl base.scad
+// openscad -o models/base.stl base.scad
 include <design.scad>
 
-$fn = 120;
+$fn = $preview ? 60 : 200;
 
 faceted_base();

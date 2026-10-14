@@ -1,6 +1,6 @@
 include <design.scad>
 
-$fn = 120;
+$fn = $preview ? 60 : 200;
 
 gap = 10;
 face_top = tip_rest + flange_t + face_h - eps;
@@ -10,9 +10,8 @@ module base_print() {
 }
 
 module clamp_print() {
-  rotate([180, 0, 180])
-    translate([0, 0, -clamp_h])
-      faceted_clamp();
+  // Flat mating interface sits directly on the bed, facets point upward
+  faceted_clamp();
 }
 
 module button_print() {
