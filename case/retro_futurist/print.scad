@@ -1,9 +1,9 @@
 // The three parts on the bed. Base and clamp match their part files.
 // The button is flipped so the flat face is on the bed, sitting below the base.
-//   openscad -o print.png print.scad
+// openscad -o models/print.3mf print.scad
 include <design.scad>
 
-$fn = 200;
+$fn = $preview ? 60 : 200;
 
 gap = 10;
 // Flat face of the button, in assembly coordinates.

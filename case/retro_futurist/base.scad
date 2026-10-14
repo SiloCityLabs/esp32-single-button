@@ -1,7 +1,7 @@
 // Circular base. Print floor-down. No supports.
-//   openscad -o base.stl base.scad
+// openscad -o models/base.stl base.scad
 include <design.scad>
 
-$fn = 200;
+$fn = $preview ? 60 : 200;
 
 retro_base();

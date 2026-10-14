@@ -1,3 +1,6 @@
+// The three parts on the bed. Base and clamp match their part files.
+// The button is flipped so the flat face is on the bed, sitting below the base.
+// openscad -o models/print.3mf print.scad
 include <design.scad>
 
 $fn = $preview ? 60 : 200;
