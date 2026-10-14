@@ -1,24 +1,27 @@
 include <../assets/common.scad>
 
 // ---------------------------------------------------------
-// RUGGED VARIANT PARAMETERS (4-SECTOR BASE)
+// RUGGED VARIANT PARAMETERS (6-POST BASE)
 // ---------------------------------------------------------
 
-num_posts       = 4;
-post_step       = 360 / num_posts;   // 90 deg
-post_span       = 26;                // Angular width of red posts (deg)
-panel_span      = post_step - post_span; // 64 deg for black panels
-post_protrusion = 1.4;               // Red posts protrude 1.4mm past outer_r
+num_posts       = 6;
+post_step       = 360 / num_posts;       // 60 deg between posts
+post_span       = 24;                    // Angular width of red posts (deg)
+panel_span      = post_step - post_span; // 36 deg for black panels
+post_protrusion = 1.4;                   // Protrudes 1.4mm past outer_r
 
-half_post_ang   = post_span / 2;     // 13 deg
-half_panel_ang  = panel_span / 2;    // 32 deg
+half_post_ang   = post_span / 2;         // 12 deg
+half_panel_ang  = panel_span / 2;        // 18 deg
+
+// Screws: Starts at back (270 deg) and alternates every other post. No screw in USB (90 deg)
+rugged_screw_angles = [270, 30, 150];
 
 // ---------------------------------------------------------
 // 1. BASE MODULE
 // ---------------------------------------------------------
 
 // Smooth pill groove along a cylindrical arc
-module panel_arc_groove(z, ang_span = 32) {
+module panel_arc_groove(z, ang_span = 21.6) {
   half = ang_span / 2;
   union() {
     rotate([0, 0, -half])
@@ -38,14 +41,14 @@ module panel_arc_groove(z, ang_span = 32) {
   }
 }
 
-// 3 evenly spaced horizontal lines centered vertically and horizontally
+// 3 evenly spaced horizontal lines centered vertically and horizontally at 60% panel width
 module base_horizontal_lines() {
   z_mid  = (2.0 + seat_z) / 2; // 7.125 mm
   z_step = 2.2;                // Vertical center-to-center spacing
-  arc_w  = panel_span * 0.50;  // Exactly 50% width (~32 deg)
+  arc_w  = panel_span * 0.60;  // Exactly 60% width (~21.6 deg)
 
   for (i = [0 : num_posts - 1]) {
-    ang = 45 + i * post_step; // Centered horizontally at 45, 135, 225, 315 deg
+    ang = 90 + 30 + i * post_step; // Centered in the 6 panels: 120, 180, 240, 300, 0, 60 deg
     rotate([0, 0, ang]) {
       panel_arc_groove(z = z_mid + z_step, ang_span = arc_w); // Top line (9.325 mm)
       panel_arc_groove(z = z_mid,          ang_span = arc_w); // Middle line (7.125 mm)
@@ -54,9 +57,11 @@ module base_horizontal_lines() {
   }
 }
 
-// 4 Outer Armor Post protrusions (extending past outer_r)
-module post_protrusions() {
-  r_post = outer_r + post_protrusion;
+// 6 Outer Armor Posts
+module rugged_posts(overlap = 0) {
+  r_post  = outer_r + post_protrusion;
+  r_start = outer_r - overlap;
+
   difference() {
     union() {
       for (i = [0 : num_posts - 1]) {
@@ -64,64 +69,65 @@ module post_protrusions() {
         rotate([0, 0, ang - half_post_ang])
           rotate_extrude(angle = post_span, $fn = 80)
             polygon([
-              [outer_r - 0.5, 0],
+              [r_start,       0],
               [r_post - 2.0,  0],
               [r_post,        2.0],
               [r_post,        seat_z],
-              [outer_r - 0.5, seat_z]
+              [r_start,       seat_z]
             ]);
       }
     }
-    // Cut USB tunnel through the 90 deg front post
+    // Cut pass-through for the 90 deg USB-C front post
     usb_tunnel();
   }
 }
 
-// Post sector clearance cutter (used to prevent preview Z-fighting)
-module post_cutout_mask() {
-  for (i = [0 : num_posts - 1]) {
-    ang = 90 + i * post_step;
-    rotate([0, 0, ang - half_post_ang])
-      rotate_extrude(angle = post_span, $fn = 80)
-        translate([outer_r - 0.5, -eps])
-          square([post_protrusion + 5, seat_z + 2 * eps]);
-  }
-}
-
-// Single watertight union for STL export and slicing
-module rugged_base() {
+// Black base core with internal features and panel grooves
+module rugged_base_black() {
   difference() {
     union() {
       base();
-      post_protrusions();
+      // Seal inherited screw holes at 90, 210, and 330 so they remain completely solid
+      for (a = [90, 210, 330]) {
+        rotate([0, 0, a])
+          translate([screw_r, 0, seat_z - 8.0])
+            cylinder(d = screw_clear_d + 1.2, h = 8.0 + eps, $fn = 24);
+      }
     }
+
     usb_tunnel();
     wire_notch();
     base_horizontal_lines();
+
+    // Screw holes for the 3 active fasteners ONLY (270 back, 30, 150)
+    for (a = rugged_screw_angles) {
+      rotate([0, 0, a])
+        translate([screw_r, 0, seat_z - 8.0])
+          cylinder(d = screw_clear_d, h = 8.0 + eps, $fn = 24);
+    }
   }
 }
 
-// ---------------------------------------------------------
-// 2. TWO-TONE PREVIEW COLOR MODULES
-// ---------------------------------------------------------
-
-module rugged_base_black() {
-  difference() {
-    base();
-    base_horizontal_lines();
-    usb_tunnel();
-    wire_notch();
-    post_cutout_mask(); // Removes the post regions so black does not overlap red
-  }
+module rugged_base_red() {
+  rugged_posts(overlap = 0);
 }
 
+// Two-tone disjoint preview (Zero Z-fighting)
 module rugged_base_colored() {
   color("#1E1E1E") rugged_base_black();
-  color("#C02026") post_protrusions();
+  color("#C02026") rugged_base_red();
+}
+
+// Single watertight union for STL export / slicing (0.5mm overlap guarantees manifold union)
+module rugged_base() {
+  union() {
+    rugged_base_black();
+    rugged_posts(overlap = 0.5);
+  }
 }
 
 // ---------------------------------------------------------
-// 3. CLAMP MODULE (UNTOUCHED)
+// 2. CLAMP MODULE (UNTOUCHED)
 // ---------------------------------------------------------
 
 module clamp_raised_bumpers(bw = 13.5) {
@@ -172,7 +178,7 @@ module rugged_clamp() {
 }
 
 // ---------------------------------------------------------
-// 4. BUTTON MODULE
+// 3. BUTTON MODULE
 // ---------------------------------------------------------
 
 module rugged_button() {
