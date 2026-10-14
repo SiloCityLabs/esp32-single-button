@@ -57,75 +57,67 @@ module base_horizontal_lines() {
 // 4 Outer Armor Post protrusions (extending past outer_r)
 module post_protrusions() {
   r_post = outer_r + post_protrusion;
+  difference() {
+    union() {
+      for (i = [0 : num_posts - 1]) {
+        ang = 90 + i * post_step;
+        rotate([0, 0, ang - half_post_ang])
+          rotate_extrude(angle = post_span, $fn = 80)
+            polygon([
+              [outer_r - 0.5, 0],
+              [r_post - 2.0,  0],
+              [r_post,        2.0],
+              [r_post,        seat_z],
+              [outer_r - 0.5, seat_z]
+            ]);
+      }
+    }
+    // Cut USB tunnel through the 90 deg front post
+    usb_tunnel();
+  }
+}
+
+// Post sector clearance cutter (used to prevent preview Z-fighting)
+module post_cutout_mask() {
   for (i = [0 : num_posts - 1]) {
     ang = 90 + i * post_step;
     rotate([0, 0, ang - half_post_ang])
       rotate_extrude(angle = post_span, $fn = 80)
-        polygon([
-          [outer_r - 0.5, 0],
-          [r_post - 2.0,  0],
-          [r_post,        2.0],
-          [r_post,        seat_z],
-          [outer_r - 0.5, seat_z]
-        ]);
+        translate([outer_r - 0.5, -eps])
+          square([post_protrusion + 5, seat_z + 2 * eps]);
   }
 }
 
-// Single watertight union for clean slicing and F6 compilation
+// Single watertight union for STL export and slicing
 module rugged_base() {
   difference() {
     union() {
       base();
       post_protrusions();
     }
-
-    // Tunnel through the 90 deg front post for USB-C
     usb_tunnel();
     wire_notch();
-
-    // 3 horizontal lines in each of the 4 black panels
     base_horizontal_lines();
   }
 }
 
 // ---------------------------------------------------------
-// 2. DISJOINT COLOR MASKS (ZERO Z-FIGHTING)
+// 2. TWO-TONE PREVIEW COLOR MODULES
 // ---------------------------------------------------------
-
-module mask_posts(h = seat_z + 10) {
-  r_far = outer_r + post_protrusion + 10;
-  for (i = [0 : num_posts - 1]) {
-    ang = 90 + i * post_step;
-    rotate([0, 0, ang])
-      linear_extrude(height = h, center = true)
-        polygon([
-          [0, 0],
-          [r_far * cos(-half_post_ang), r_far * sin(-half_post_ang)],
-          [r_far * cos(-half_post_ang/2), r_far * sin(-half_post_ang/2)],
-          [r_far, 0],
-          [r_far * cos(half_post_ang/2), r_far * sin(half_post_ang/2)],
-          [r_far * cos(half_post_ang),  r_far * sin(half_post_ang)]
-        ]);
-  }
-}
-
-module rugged_base_red() {
-  intersection() {
-    rugged_base();
-    mask_posts();
-  }
-}
 
 module rugged_base_black() {
   difference() {
-    rugged_base();
-    mask_posts();
+    base();
+    base_horizontal_lines();
+    usb_tunnel();
+    wire_notch();
+    post_cutout_mask(); // Removes the post regions so black does not overlap red
   }
 }
 
 module rugged_base_colored() {
-  color("#C02026") rugged_base_red();
   color("#1E1E1E") rugged_base_black();
+  color("#C02026") post_protrusions();
 }
 
 // ---------------------------------------------------------
