@@ -1,13 +1,22 @@
-// openscad -D 'cutaway=true' -o assembly.png assembly.scad
+// Stacked preview. Not a printable part.
+//   openscad -D 'cutaway=true' -o assembly.png assembly.scad
 include <design.scad>
 
-cutaway = false;
+// --- View & Render Controls ---
+cutaway    = false;
 show_board = true;
+view_usb   = true;  // Set true to orient the USB-C port front and center
 
-$fn = 60;
+// Resolution: 60 for F5 interactive preview, 200 for F6 CGAL compile
+$fn = $preview ? 60 : 200;
+
+// Camera position
+$vpr = [65, 0, 0];
+$vpt = [0, 0, seat_z / 2];
+$vpd = 150;
 
 module stacked() {
-  color("#4CBB17") faceted_base();
+  color("green") faceted_base();
   color("#3C3C3C") translate([0, 0, seat_z]) faceted_clamp();
   color("#1E1E1E") faceted_button();
   if (show_board) {
@@ -17,10 +26,13 @@ module stacked() {
   }
 }
 
-if (cutaway)
-  difference() {
+// Physically rotate model 180 degrees when view_usb=true so port faces forward
+rotate([0, 0, view_usb ? 180 : 0]) {
+  if (cutaway)
+    difference() {
+      stacked();
+      translate([-80, 0, -5]) cube([80, 120, 80]);
+    }
+  else
     stacked();
-    translate([-80, 0, -5]) cube([80, 120, 80]);
-  }
-else
-  stacked();
+}

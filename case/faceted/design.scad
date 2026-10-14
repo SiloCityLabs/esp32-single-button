@@ -1,99 +1,156 @@
 include <../assets/common.scad>
 
 // ---------------------------------------------------------
-// PARAMETERS & EQUAL-SPACING MATH
+// PARAMETERS & MATH
 // ---------------------------------------------------------
 
-tri_leg     = 7.0;  // Leg length for isosceles right triangle (mm)
-cut_depth   = 1.4;  // Radial depth into circular wall (mm)
-num_tri     = 12;   // Number of triangles around perimeter
+// Base side triangles
+tri_leg   = 6.5;   // Leg height and base of side right triangles (mm)
+cut_depth = 1.4;   // Radial recess depth into wall (mm)
+k_side    = 5;     // Number of triangles on EACH side
+rear_w    = 8.0;   // Base width of the rear connected triangle (mm)
 
-// Exact angular sizes (degrees)
-theta_usb = 2 * asin((usb_w / 2) / outer_r);
-theta_tri = 2 * asin((tri_leg / 2) / outer_r);
-theta_gap = (360 - theta_usb - (num_tri * theta_tri)) / (num_tri + 1);
+// Angular calculations
+theta_usb  = 2 * asin((usb_w / 2) / outer_r);
+theta_tri  = 2 * asin((tri_leg / 2) / outer_r);
+theta_rear = 2 * asin((rear_w / 2) / outer_r);
+theta_gap  = (180 - (theta_usb / 2) - (theta_rear / 2) - (k_side * theta_tri)) / (k_side + 1);
 
-// Vertical center of base wall
 z_mid = seat_z / 2;
 
+// Clamp Relief Parameters (Aggressive Diamond Geometry)
+z_foundation = 3.6;  // Continuous solid perimeter height (well above lip_z = 2.25)
+z_peak_out   = 5.5;  // High outer facet peak
+z_val_out    = 3.6;  // Low outer facet valley (meets foundation with zero gap)
+z_peak_in    = 4.6;  // High inner facet peak
+z_val_in     = 3.6;  // Low inner facet valley
+rim_r        = opening_r + 1.0;
+
 // ---------------------------------------------------------
-// 1. BASE MODULE (CIRCULAR WITH RECESSED ISOSCELES TRIANGLES)
+// 1. BASE MODULE
 // ---------------------------------------------------------
 
-module isosceles_right_triangle_cutter() {
-  // 2D Isosceles Right Triangle (legs = tri_leg, 90-degree corner at bottom-left)
-  // Centered at (0, 0)
+// Left side cutter: Right angle faces away from USB
+module cutter_left() {
+  pts = [
+    [-tri_leg/2, -tri_leg/2],
+    [ tri_leg/2, -tri_leg/2],
+    [ tri_leg/2,  tri_leg/2]
+  ];
+  rotate([90, 0, 90])
+    linear_extrude(height = cut_depth + eps * 2)
+      polygon(pts);
+}
+
+// Right side cutter: Mirrored, right angle faces away from USB
+module cutter_right() {
   pts = [
     [-tri_leg/2, -tri_leg/2],
     [ tri_leg/2, -tri_leg/2],
     [-tri_leg/2,  tri_leg/2]
   ];
+  rotate([90, 0, 90])
+    linear_extrude(height = cut_depth + eps * 2)
+      polygon(pts);
+}
 
+// Rear connected keystone: Symmetric triangle centered at 270 deg
+module cutter_rear_connected() {
+  pts = [
+    [-rear_w/2, -tri_leg/2],
+    [ rear_w/2, -tri_leg/2],
+    [ 0,         tri_leg/2]
+  ];
   rotate([90, 0, 90])
     linear_extrude(height = cut_depth + eps * 2)
       polygon(pts);
 }
 
 module faceted_base_cuts() {
-  // USB port center is at +Y (90 deg)
   usb_center = 90;
-  start_angle = (usb_center + theta_usb / 2) + theta_gap;
 
-  for (i = [0 : num_tri - 1]) {
-    angle = start_angle + i * (theta_tri + theta_gap) + (theta_tri / 2);
-
-    rotate([0, 0, angle])
+  // Left side stream (90 to 270 deg)
+  for (i = [0 : k_side - 1]) {
+    ang = usb_center + (theta_usb / 2) + theta_gap + (i * (theta_tri + theta_gap)) + (theta_tri / 2);
+    rotate([0, 0, ang])
       translate([outer_r - cut_depth, 0, z_mid])
-        isosceles_right_triangle_cutter();
+        cutter_left();
   }
+
+  // Right side stream (90 down to -90 / 270 deg)
+  for (i = [0 : k_side - 1]) {
+    ang = usb_center - ((theta_usb / 2) + theta_gap + (i * (theta_tri + theta_gap)) + (theta_tri / 2));
+    rotate([0, 0, ang])
+      translate([outer_r - cut_depth, 0, z_mid])
+        cutter_right();
+  }
+
+  // Connected triangle at the rear (270 deg)
+  rotate([0, 0, 270])
+    translate([outer_r - cut_depth, 0, z_mid])
+      cutter_rear_connected();
 }
 
 module faceted_base() {
   difference() {
-    base(); // Standard circular base from common.scad
-
-    // Recessed isosceles right triangles facing uniform direction
+    base();
     faceted_base_cuts();
   }
 }
 
 // ---------------------------------------------------------
-// 2. CLAMP MODULE (CIRCULAR PERIMETER WITH LOW-POLY TOP FACETS)
+// 2. WATERTIGHT FACETED CLAMP MODULE (NO GAPS / FULLY CLOSED SIDES)
 // ---------------------------------------------------------
 
 module faceted_clamp_body() {
-  bevel_drop = 2.4;
-  rim_r      = opening_r + 1.2;
-  top_z      = clamp_h;
-  mid_z      = clamp_h - bevel_drop;
-  segments   = 16;
+  n_sectors   = 16;
+  step        = 360 / n_sectors;
+  r_out_ext   = outer_r + 3.0; // Extends past outer_r for clean circular intersection
+  z_anchor    = 3.0;           // Anchored deep inside the solid foundation
 
   intersection() {
-    // Keep outer envelope strictly circular
-    cylinder(r = outer_r, h = clamp_h, $fn = 120);
+    // Guarantees the outer perimeter is 100% circular with zero chording
+    cylinder(r = outer_r, h = z_peak_out + 5, $fn = 120);
 
     union() {
-      // Inner structural wall around button hole
-      cylinder(r = rim_r, h = top_z, $fn = 120);
+      // 1. Solid continuous foundation cylinder (closes all side walls)
+      cylinder(r = outer_r, h = z_foundation, $fn = 120);
 
-      // Triangulated facets between inner rim and outer perimeter
-      for (i = [0 : segments - 1]) {
-        a1 = i * (360 / segments);
-        a2 = (i + 1) * (360 / segments);
-        z_outer = (i % 2 == 0) ? top_z : mid_z;
+      // 2. Solid inner collar around the button hole
+      cylinder(r = rim_r, h = z_peak_in, $fn = 120);
 
+      // 3. 32 Interlocking Facet Prisms
+      for (i = [0 : n_sectors - 1]) {
+        a1 = i * step;
+        a2 = (i + 1) * step;
+
+        z_o1 = (i % 2 == 0) ? z_peak_out : z_val_out;
+        z_o2 = ((i + 1) % 2 == 0) ? z_peak_out : z_val_out;
+
+        z_i1 = (i % 2 == 0) ? z_val_in : z_peak_in;
+        z_i2 = ((i + 1) % 2 == 0) ? z_val_in : z_peak_in;
+
+        // Facet Triangle A: Outer-biased
         hull() {
-          // Inner circular apex anchor
-          cylinder(r = rim_r, h = top_z, $fn = 60);
+          translate([r_out_ext * cos(a1), r_out_ext * sin(a1), z_o1]) sphere(r = 0.05, $fn = 6);
+          translate([r_out_ext * cos(a2), r_out_ext * sin(a2), z_o2]) sphere(r = 0.05, $fn = 6);
+          translate([rim_r     * cos(a2), rim_r     * sin(a2), z_i2]) sphere(r = 0.05, $fn = 6);
 
-          // Outer perimeter edge segment
-          rotate([0, 0, a1])
-            translate([outer_r + 2, 0, 0])
-              cylinder(r = 0.5, h = z_outer, $fn = 8);
+          // Deep downward anchors
+          translate([r_out_ext * cos(a1), r_out_ext * sin(a1), z_anchor]) sphere(r = 0.05, $fn = 6);
+          translate([r_out_ext * cos(a2), r_out_ext * sin(a2), z_anchor]) sphere(r = 0.05, $fn = 6);
+          translate([rim_r     * cos(a2), rim_r     * sin(a2), z_anchor]) sphere(r = 0.05, $fn = 6);
+        }
 
-          rotate([0, 0, a2])
-            translate([outer_r + 2, 0, 0])
-              cylinder(r = 0.5, h = (i % 2 == 0) ? mid_z : top_z, $fn = 8);
+        // Facet Triangle B: Inner-biased
+        hull() {
+          translate([r_out_ext * cos(a1), r_out_ext * sin(a1), z_o1]) sphere(r = 0.05, $fn = 6);
+          translate([rim_r     * cos(a1), rim_r     * sin(a1), z_i1]) sphere(r = 0.05, $fn = 6);
+          translate([rim_r     * cos(a2), rim_r     * sin(a2), z_i2]) sphere(r = 0.05, $fn = 6);
+
+          translate([r_out_ext * cos(a1), r_out_ext * sin(a1), z_anchor]) sphere(r = 0.05, $fn = 6);
+          translate([rim_r     * cos(a1), rim_r     * sin(a1), z_anchor]) sphere(r = 0.05, $fn = 6);
+          translate([rim_r     * cos(a2), rim_r     * sin(a2), z_anchor]) sphere(r = 0.05, $fn = 6);
         }
       }
     }
@@ -104,7 +161,7 @@ module faceted_clamp() {
   difference() {
     faceted_clamp_body();
 
-    // Flange movement cavity
+    // Internal flange movement cavity
     translate([0, 0, -eps])
       difference() {
         cylinder(r = flange_clear_r, h = lip_z + eps);
@@ -112,15 +169,22 @@ module faceted_clamp() {
           rotate([0, 0, a])
             translate([screw_r, 0, 0])
               translate([0, 0, -eps])
-                cylinder(d = screw_clear_d + 4, h = clamp_h);
+                cylinder(d = screw_clear_d + 4, h = clamp_h + 10);
       }
 
     // Button opening
     translate([0, 0, lip_z - eps])
-      cylinder(r = opening_r, h = lip_t + 2 * eps);
+      cylinder(r = opening_r, h = z_peak_out + 10);
 
-    // Screw clearance bores
-    screw_clearance();
+    // Screw clearance bores through peak facets
+    for (a = screw_angles)
+      rotate([0, 0, a])
+        translate([screw_r, 0, 0]) {
+          translate([0, 0, -eps])
+            cylinder(d = screw_clear_d, h = z_peak_out + 10);
+          translate([0, 0, clamp_h - screw_head_h])
+            cylinder(d = screw_head_d, h = z_peak_out + 10);
+        }
   }
 }
 
