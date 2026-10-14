@@ -8,7 +8,7 @@ else
 endif
 
 .PHONY: help setup build build-c3 build-c6 flash-c3 flash-c6 config-c3 config-c6 \
-	logs-c6 flash-wait-c6 stl 3mf rev1 retro_futurist faceted rugged
+	logs-c6 flash-wait-c6 stl 3mf rev1 retro_futurist faceted rugged organic
 
 help:
 	@echo "Available targets:"
@@ -96,7 +96,9 @@ faceted: case/faceted/models/base.stl case/faceted/models/clamp.stl case/faceted
 
 rugged: case/rugged/models/base.stl case/rugged/models/clamp.stl case/rugged/models/button.stl ## Build rugged STLs
 
+organic: case/organic/models/base.stl case/organic/models/clamp.stl case/organic/models/button.stl ## Build organic STLs
+
 # Global target
-stl: rev1 retro_futurist faceted rugged ## Build all style STLs
+stl: rev1 retro_futurist faceted rugged organic ## Build all style STLs
 
 3mf: ## Generate 3MF files
