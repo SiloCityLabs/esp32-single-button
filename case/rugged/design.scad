@@ -89,14 +89,7 @@ module rugged_posts(overlap = 0) {
 // Base core body including internal cavities and panel grooves
 module rugged_base_black() {
   difference() {
-    union() {
-      base();
-      for (a = [90, 210, 330]) {
-        rotate([0, 0, a])
-          translate([screw_r, 0, seat_z - 8.0])
-            cylinder(d = screw_clear_d + 1.2, h = 8.0 + eps, $fn = 24);
-      }
-    }
+    base();
 
     usb_tunnel();
     wire_notch();
