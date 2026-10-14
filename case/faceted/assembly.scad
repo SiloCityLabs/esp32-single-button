@@ -7,7 +7,7 @@ show_board = true;
 $fn = 60;
 
 module stacked() {
-  color("#2B2B2B") faceted_base();
+  color("#4CBB17") faceted_base();
   color("#3C3C3C") translate([0, 0, seat_z]) faceted_clamp();
   color("#1E1E1E") faceted_button();
   if (show_board) {
