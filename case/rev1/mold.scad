@@ -11,17 +11,17 @@ fn_override = "stupid_hack";
 fn = (fn_override != undef && fn_override != "stupid_hack") ? fn_override : 40;
 $fn = fn;
 
+sheet_thickness = 0.8;
+cup_plateau = 14;
+draft_deg = 7;
+// Roundovers so the sheet does not tear. Narrow end positive, wide end negative (fillet).
+cup_round = 3.9;
 mold_r = outer_r + 20;
 mold_h = seat_z + 25;
-cup_clear = 8;
-draft_deg = 3;
 cup_h = seat_z + 10;
-cup_r_top = outer_r + cup_clear;
+cup_r_top = outer_r + cup_plateau;
 cup_r_bot = cup_r_top - cup_h * tan(draft_deg);
 cup_z = mold_h - cup_h;
-sheet_thickness = 0.8;
-// Roundovers so the sheet does not tear. Narrow end positive, wide end negative (fillet).
-cup_round = 3.0;
 hump_h = seat_z;
 hump_r_bot = outer_r;
 hump_r_top = hump_r_bot - hump_h * tan(draft_deg);
