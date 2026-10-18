@@ -1,12 +1,15 @@
 // Two-piece mold for stamping sheet packaging around base_body().
 // Blank cylinder, cup cut splits the halves (draft taper), hump nests the product.
-//   openscad -o mold.stl mold.scad
+// Preview uses fn below. For a dense STL: ./build.sh [fn]
+//   openscad -o mold.stl -D 'fn_override=200' mold.scad
 include <../libraries/BOSL2_submodule/std.scad>
 include <common.scad>
 
-$fn = 90;
-// highFn = $fn * 1.8;
-// lowFn = $fn * 0.5;
+// -D cannot reliably override Customizer-assigned vars (openscad#2037).
+// build.sh sets fn_override; sentinel means "use the preview default".
+fn_override = "stupid_hack";
+fn = (fn_override != undef && fn_override != "stupid_hack") ? fn_override : 40;
+$fn = fn;
 
 mold_r = outer_r + 20;
 mold_h = seat_z + 25;

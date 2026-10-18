@@ -48,3 +48,11 @@ BOSL2 is a git submodule under `case/libraries/BOSL2_submodule` (used by `case/r
 ```bash
 git submodule update --init --recursive
 ```
+
+Export the packaging mold STL (default `$fn` 200; optional override):
+
+```bash
+cd case/rev1
+./build.sh        # fn=200
+./build.sh 120    # custom fn
+```
