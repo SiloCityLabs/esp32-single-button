@@ -1,10 +1,12 @@
 // Two-piece mold for stamping sheet packaging around base_body().
 // Blank cylinder, cup cut splits the halves (draft taper), hump nests the product.
 //   openscad -o mold.stl mold.scad
-include <BOSL2/std.scad>
+include <../libraries/BOSL2_submodule/std.scad>
 include <common.scad>
 
-$fn = 25;
+$fn = 90;
+// highFn = $fn * 1.8;
+// lowFn = $fn * 0.5;
 
 mold_r = outer_r + 20;
 mold_h = seat_z + 25;

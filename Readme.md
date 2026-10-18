@@ -37,3 +37,14 @@ Provisioning: Improv (BLE + serial) and captive portal fallback, same pattern as
 ## Home Assistant
 
 Add the device via ESPHome Dashboard (open `esphome-c6.yaml` or clone this repo). Automate on the **Button** binary sensor entity.
+
+
+## Case CAD (OpenSCAD)
+
+The case is designed for 3D printing. Source OpenSCAD files and built STLs are in `case/`
+
+BOSL2 is a git submodule under `case/libraries/BOSL2_submodule` (used by `case/rev1/mold.scad`).
+
+```bash
+git submodule update --init --recursive
+```
