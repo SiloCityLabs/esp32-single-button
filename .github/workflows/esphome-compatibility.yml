@@ -2,8 +2,8 @@ name: ESPHome C6 Compatibility
 
 on:
   schedule:
-    # Daily at 11:00 UTC (6 AM EST / 7 AM EDT)
-    - cron: '0 11 * * *'
+    # Weekly on Sunday at 11:00 UTC (6 AM EST / 7 AM EDT)
+    - cron: '0 11 * * 0'
   workflow_dispatch:
   push:
     paths:
