@@ -1,0 +1,55 @@
+name: ESPHome Compatibility
+
+on:
+  schedule:
+    # Daily at 11:00 UTC (6 AM EST / 7 AM EDT)
+    - cron: '0 11 * * *'
+  workflow_dispatch:
+  push:
+    paths:
+      - 'esphome-*.yaml'
+      - '.github/workflows/esphome-compatibility.yml'
+  pull_request:
+    paths:
+      - 'esphome-*.yaml'
+      - '.github/workflows/esphome-compatibility.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  compatibility:
+    name: ${{ matrix.channel }} / ${{ matrix.device }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 90
+    strategy:
+      fail-fast: false
+      matrix:
+        channel: [stable, beta, dev]
+        device: [c3, c6]
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Pull ESPHome image
+        run: docker pull "ghcr.io/esphome/esphome:${{ matrix.channel }}"
+
+      - name: Check ESPHome version
+        run: |
+          docker run --rm --entrypoint esphome \
+            "ghcr.io/esphome/esphome:${{ matrix.channel }}" version
+
+      - name: Validate configuration
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/config" \
+            "ghcr.io/esphome/esphome:${{ matrix.channel }}" \
+            config "esphome-${{ matrix.device }}.yaml"
+
+      - name: Compile firmware
+        run: |
+          docker run --rm \
+            -v "$GITHUB_WORKSPACE:/config" \
+            "ghcr.io/esphome/esphome:${{ matrix.channel }}" \
+            compile "esphome-${{ matrix.device }}.yaml"
