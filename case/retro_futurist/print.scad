@@ -14,9 +14,7 @@ module base_print() {
 }
 
 module clamp_print() {
-  rotate([180, 0, 180])
-    translate([0, 0, -clamp_h])
-      retro_clamp();
+  retro_clamp();
 }
 
 module button_print() {
