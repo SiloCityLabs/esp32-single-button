@@ -227,7 +227,7 @@ module button_solid() {
       rotate([0, 0, a])
         translate([screw_r, 0, 0]) {
           translate([0, 0, -eps])
-            cylinder(d = screw_clear_d+4.5, h = 15);
+            cylinder(d = screw_clear_d + 4.7, h = 15);
         }
   }
 }
