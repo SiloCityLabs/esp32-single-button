@@ -75,15 +75,15 @@ flash-wait-c6: ## Flash C6 repeatedly when /dev/ttyACM0 appears
 # OpenSCAD Rules
 # ==============================================================================
 
-case/%/models/base.stl: case/%/base.scad
+case/%/models/base.stl: case/%/base.scad case/%/design.scad case/assets/common.scad
 	@$(MKDIR)
 	$(OPENSCAD) -o "$@" "$<"
 
-case/%/models/clamp.stl: case/%/clamp.scad
+case/%/models/clamp.stl: case/%/clamp.scad case/%/design.scad case/assets/common.scad
 	@$(MKDIR)
 	$(OPENSCAD) -o "$@" "$<"
 
-case/%/models/button.stl: case/%/button.scad
+case/%/models/button.stl: case/%/button.scad case/%/design.scad case/assets/common.scad
 	@$(MKDIR)
 	$(OPENSCAD) -o "$@" "$<"
 
@@ -99,6 +99,6 @@ rugged: case/rugged/models/base.stl case/rugged/models/clamp.stl case/rugged/mod
 organic: case/organic/models/base.stl case/organic/models/clamp.stl case/organic/models/button.stl ## Build organic STLs
 
 # Global target
-stl: rev1 retro_futurist faceted rugged organic ## Build all style STLs
+stl: rev1 retro_futurist faceted rugged ## Build all style STLs
 
 3mf: ## Generate 3MF files
