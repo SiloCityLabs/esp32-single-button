@@ -8,7 +8,7 @@ else
 endif
 
 .PHONY: help setup build build-c3 build-c6 flash-c3 flash-c6 config-c3 config-c6 \
-	logs-c6 flash-wait-c6 stl 3mf rev1 retro_futurist faceted rugged organic \
+	logs-c6 flash-wait-c6 stl 3mf rev1 retro_futurist faceted rugged \
 	base clamp button
 
 help:
@@ -92,7 +92,7 @@ case/%/models/button.stl: case/%/button.scad case/%/design.scad case/assets/comm
 # Style & Part Targets (supports e.g. "make rugged", "make rugged button", "make button")
 # ==============================================================================
 
-STYLES := rev1 retro_futurist faceted rugged organic
+STYLES := rev1 retro_futurist faceted rugged
 PARTS  := base clamp button
 
 SELECTED_STYLE := $(filter $(STYLES),$(MAKECMDGOALS))
@@ -114,7 +114,6 @@ else
   retro_futurist: case/retro_futurist/models/base.stl case/retro_futurist/models/clamp.stl case/retro_futurist/models/button.stl ## Build retro_futurist STLs
   faceted: case/faceted/models/base.stl case/faceted/models/clamp.stl case/faceted/models/button.stl ## Build faceted STLs
   rugged: case/rugged/models/base.stl case/rugged/models/clamp.stl case/rugged/models/button.stl ## Build rugged STLs
-  organic: case/organic/models/base.stl case/organic/models/clamp.stl case/organic/models/button.stl ## Build organic STLs
 endif
 
 # Part-only targets: e.g. "make button" builds all buttons
