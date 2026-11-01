@@ -8,7 +8,8 @@ else
 endif
 
 .PHONY: help setup build build-c3 build-c6 flash-c3 flash-c6 config-c3 config-c6 \
-	logs-c6 flash-wait-c6 stl 3mf rev1 retro_futurist faceted rugged organic
+	logs-c6 flash-wait-c6 stl 3mf rev1 retro_futurist faceted rugged organic \
+	base clamp button
 
 help:
 	@echo "Available targets:"
@@ -87,16 +88,41 @@ case/%/models/button.stl: case/%/button.scad case/%/design.scad case/assets/comm
 	@$(MKDIR)
 	$(OPENSCAD) -o "$@" "$<"
 
-# Per-style targets
-rev1: case/rev1/models/base.stl case/rev1/models/clamp.stl case/rev1/models/button.stl ## Build rev1 STLs
+# ==============================================================================
+# Style & Part Targets (supports e.g. "make rugged", "make rugged button", "make button")
+# ==============================================================================
 
-retro_futurist: case/retro_futurist/models/base.stl case/retro_futurist/models/clamp.stl case/retro_futurist/models/button.stl ## Build retro_futurist STLs
+STYLES := rev1 retro_futurist faceted rugged organic
+PARTS  := base clamp button
 
-faceted: case/faceted/models/base.stl case/faceted/models/clamp.stl case/faceted/models/button.stl ## Build faceted STLs
+SELECTED_STYLE := $(filter $(STYLES),$(MAKECMDGOALS))
+SELECTED_PART  := $(filter $(PARTS),$(MAKECMDGOALS))
 
-rugged: case/rugged/models/base.stl case/rugged/models/clamp.stl case/rugged/models/button.stl ## Build rugged STLs
+ifeq ($(words $(SELECTED_STYLE)),1)
+  ifneq ($(SELECTED_PART),)
+    # Both style and part specified: e.g. "make rugged button"
+    $(SELECTED_STYLE): $(foreach p,$(SELECTED_PART),case/$(SELECTED_STYLE)/models/$(p).stl)
+    $(SELECTED_PART):
+	@:
+  else
+    # Style only: e.g. "make rugged"
+    $(SELECTED_STYLE): case/$(SELECTED_STYLE)/models/base.stl case/$(SELECTED_STYLE)/models/clamp.stl case/$(SELECTED_STYLE)/models/button.stl
+  endif
+else
+  # Default style targets
+  rev1: case/rev1/models/base.stl case/rev1/models/clamp.stl case/rev1/models/button.stl ## Build rev1 STLs
+  retro_futurist: case/retro_futurist/models/base.stl case/retro_futurist/models/clamp.stl case/retro_futurist/models/button.stl ## Build retro_futurist STLs
+  faceted: case/faceted/models/base.stl case/faceted/models/clamp.stl case/faceted/models/button.stl ## Build faceted STLs
+  rugged: case/rugged/models/base.stl case/rugged/models/clamp.stl case/rugged/models/button.stl ## Build rugged STLs
+  organic: case/organic/models/base.stl case/organic/models/clamp.stl case/organic/models/button.stl ## Build organic STLs
+endif
 
-organic: case/organic/models/base.stl case/organic/models/clamp.stl case/organic/models/button.stl ## Build organic STLs
+# Part-only targets: e.g. "make button" builds all buttons
+ifeq ($(SELECTED_STYLE),)
+base: $(foreach s,rev1 retro_futurist faceted rugged,case/$(s)/models/base.stl) ## Build base STLs for all styles
+clamp: $(foreach s,rev1 retro_futurist faceted rugged,case/$(s)/models/clamp.stl) ## Build clamp STLs for all styles
+button: $(foreach s,rev1 retro_futurist faceted rugged,case/$(s)/models/button.stl) ## Build button STLs for all styles
+endif
 
 # Global target
 stl: rev1 retro_futurist faceted rugged ## Build all style STLs
