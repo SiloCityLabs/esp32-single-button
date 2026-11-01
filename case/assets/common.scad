@@ -35,6 +35,7 @@ xiao_body_y1 = 22.4;
 xiao_usb_w = 12.0;
 xiao_usb_y1 = 23.3;
 xiao_d = 3.5;
+xiao_gap = 0.35;
 
 // Button
 switch_h = 1.8;
@@ -116,7 +117,7 @@ module base() {
         battery_2d();
     translate([0, 0, pcb_z - xiao_d])
       linear_extrude(xiao_d + eps)
-        xiao_2d();
+        offset(delta = xiao_gap) xiao_2d();
     translate([0, 0, pcb_z])
       linear_extrude(seat_z - pcb_z + eps)
         offset(delta = pcb_gap) board_2d();
@@ -131,8 +132,10 @@ module base() {
 module pcb_tabs() {
   z0 = pcb_top + 0.35;
   h = 0.75;
-  translate([-21.6, stack_y - 5, z0]) cube([1.8, 10, h]);
-  translate([19.8, stack_y - 5, z0]) cube([1.8, 10, h]);
+  tab_w = 1.8;
+  tab_inset = 20.1; // ~0.13mm gentle snap overhang per side past 40.46mm board
+  translate([-tab_inset - tab_w, stack_y - 5, z0]) cube([tab_w, 10, h]);
+  translate([tab_inset, stack_y - 5, z0]) cube([tab_w, 10, h]);
 }
 
 module usb_tunnel() {

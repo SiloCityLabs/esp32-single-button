@@ -94,12 +94,6 @@ module rugged_base_black() {
     usb_tunnel();
     wire_notch();
     base_horizontal_lines();
-
-    for (a = rugged_screw_angles) {
-      rotate([0, 0, a])
-        translate([screw_r, 0, seat_z - 8.0])
-          cylinder(d = screw_clear_d, h = 8.0 + eps, $fn = 24);
-    }
   }
 }
 
