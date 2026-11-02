@@ -234,6 +234,11 @@ module rugged_clamp() {
 // BUTTON MODULE
 // ---------------------------------------------------------
 
-module rugged_button() {
-  button_solid();
+module rugged_button(inside_clearance = 0.5) {
+  difference() {
+    button_solid();
+    // Raise inside cavity ceiling by 0.5mm for accidental press clearance
+    translate([0, 0, inside_clearance])
+      led_opening();
+  }
 }
