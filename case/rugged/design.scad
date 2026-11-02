@@ -22,6 +22,7 @@ base_fillet_r  = 2.0;
 r_base_bot     = outer_r - base_fillet_r;
 clamp_flange_r = is_undef(flange_r) ? (opening_r + 1.8) : (flange_r + 0.5);
 screw_boss_d   = screw_head_d + 2.2;
+rugged_screw_pilot_h = screw_pilot_h + 0.6; // 0.6mm deeper pilot hole for base
 
 // ---------------------------------------------------------
 // BASE MODULE
@@ -94,6 +95,12 @@ module rugged_base_black() {
     usb_tunnel();
     wire_notch();
     base_horizontal_lines();
+
+    for (a = rugged_screw_angles) {
+      rotate([0, 0, a])
+        translate([screw_r, 0, seat_z - rugged_screw_pilot_h])
+          cylinder(d = screw_pilot_d, h = rugged_screw_pilot_h + eps, $fn = 24);
+    }
   }
 }
 
@@ -236,10 +243,10 @@ module rugged_clamp() {
 
 rugged_face_r = face_r - 0.25; // 0.5mm smaller diameter (45.5mm vs 46.0mm)
 
-module rugged_button(inside_clearance = 0.5, face_r = rugged_face_r, notch_d = undef) {
+module rugged_button(inside_clearance = 0.2, face_r = rugged_face_r, notch_d = undef) {
   difference() {
     button_solid(face_r = face_r, notch_d = notch_d);
-    // Raise inside cavity ceiling by 0.5mm for accidental press clearance
+    // Raise inside cavity ceiling by 0.2mm for accidental press clearance
     translate([0, 0, inside_clearance])
       led_opening();
   }
