@@ -48,6 +48,7 @@ flange_t = 1.25;
 face_r = 23.0;
 face_h = 3.4;         // flat top, stands proud of the clamp lip
 opening_r = 23.15;     // clamp hole the face passes through
+button_notch_d = 8.0;  // flange clearance notch diameter (8.0mm touches face_r=23mm exactly)
 
 // Clamp
 lip_t = 1.8;
@@ -206,7 +207,7 @@ module screw_clearance() {
       }
 }
 
-module button() {
+module button(face_r = face_r, flange_r = flange_r) {
   union() {
     translate([0, 0, tip_rest])
       cylinder(r = flange_r, h = flange_t);
@@ -219,15 +220,17 @@ module button() {
   }
 }
 
-module button_solid() {
+module button_solid(face_r = face_r, notch_d = undef) {
+  actual_notch_d = is_undef(notch_d) ? (screw_r - face_r) * 2 : notch_d;
   difference() {
-    button();
+    button(face_r = face_r);
     led_opening();
     for (a = screw_angles)
       rotate([0, 0, a])
         translate([screw_r, 0, 0]) {
-          translate([0, 0, -eps])
-            cylinder(d = screw_clear_d + 4.7, h = 15);
+          // Only cut through the flange height, protecting the button face above:
+          translate([0, 0, tip_rest - eps])
+            cylinder(d = actual_notch_d, h = flange_t + 2 * eps);
         }
   }
 }

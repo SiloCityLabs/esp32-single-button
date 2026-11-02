@@ -234,9 +234,11 @@ module rugged_clamp() {
 // BUTTON MODULE
 // ---------------------------------------------------------
 
-module rugged_button(inside_clearance = 0.5) {
+rugged_face_r = face_r - 0.25; // 0.5mm smaller diameter (45.5mm vs 46.0mm)
+
+module rugged_button(inside_clearance = 0.5, face_r = rugged_face_r, notch_d = undef) {
   difference() {
-    button_solid();
+    button_solid(face_r = face_r, notch_d = notch_d);
     // Raise inside cavity ceiling by 0.5mm for accidental press clearance
     translate([0, 0, inside_clearance])
       led_opening();
