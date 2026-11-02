@@ -192,6 +192,11 @@ module faceted_clamp() {
 // 3. BUTTON MODULE
 // ---------------------------------------------------------
 
-module faceted_button() {
-  button_solid();
+module faceted_button(inside_clearance = 0.2) {
+  difference() {
+    button_solid();
+    // Raise inside cavity ceiling by 0.2mm for switch relief / accidental press clearance
+    translate([0, 0, inside_clearance])
+      led_opening();
+  }
 }
