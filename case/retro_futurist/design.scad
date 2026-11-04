@@ -118,8 +118,8 @@ module retro_vents(slot_len = 6.5, z_center = 7.125) {
   for (i = [0 : vent_count - 1]) {
     angle = i * (360 / vent_count);
 
-    // Skip cutting over the USB tunnel (70 to 110 degrees)
-    if (!(angle > 70 && angle < 110)) {
+    // Skip cutting over the USB tunnel and PCB front corners (65 to 115 degrees)
+    if (!(angle >= 65 && angle <= 115)) {
       rotate([0, 0, angle])
         translate([outer_r - cut_depth, 0, z_center])
           hull() {

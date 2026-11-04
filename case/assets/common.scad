@@ -35,6 +35,7 @@ xiao_body_y1 = 22.4;
 xiao_usb_w = 12.0;
 xiao_usb_y1 = 23.3;
 xiao_d = 3.5;
+xiao_gap = 0.35;
 
 // Button
 switch_h = 1.8;
@@ -47,6 +48,7 @@ flange_t = 1.25;
 face_r = 23.0;
 face_h = 3.4;         // flat top, stands proud of the clamp lip
 opening_r = 23.15;     // clamp hole the face passes through
+button_notch_d = 8.0;  // flange clearance notch diameter (8.0mm touches face_r=23mm exactly)
 
 // Clamp
 lip_t = 1.8;
@@ -116,7 +118,7 @@ module base() {
         battery_2d();
     translate([0, 0, pcb_z - xiao_d])
       linear_extrude(xiao_d + eps)
-        xiao_2d();
+        offset(delta = xiao_gap) xiao_2d();
     translate([0, 0, pcb_z])
       linear_extrude(seat_z - pcb_z + eps)
         offset(delta = pcb_gap) board_2d();
@@ -131,8 +133,10 @@ module base() {
 module pcb_tabs() {
   z0 = pcb_top + 0.35;
   h = 0.75;
-  translate([-21.6, stack_y - 5, z0]) cube([1.8, 10, h]);
-  translate([19.8, stack_y - 5, z0]) cube([1.8, 10, h]);
+  tab_w = 1.8;
+  tab_inset = 20.1; // ~0.13mm gentle snap overhang per side past 40.46mm board
+  translate([-tab_inset - tab_w, stack_y - 5, z0]) cube([tab_w, 10, h]);
+  translate([tab_inset, stack_y - 5, z0]) cube([tab_w, 10, h]);
 }
 
 module usb_tunnel() {
@@ -203,7 +207,7 @@ module screw_clearance() {
       }
 }
 
-module button() {
+module button(face_r = face_r, flange_r = flange_r) {
   union() {
     translate([0, 0, tip_rest])
       cylinder(r = flange_r, h = flange_t);
@@ -216,15 +220,17 @@ module button() {
   }
 }
 
-module button_solid() {
+module button_solid(face_r = face_r, notch_d = undef) {
+  actual_notch_d = is_undef(notch_d) ? (screw_r - face_r) * 2 : notch_d;
   difference() {
-    button();
+    button(face_r = face_r);
     led_opening();
     for (a = screw_angles)
       rotate([0, 0, a])
         translate([screw_r, 0, 0]) {
-          translate([0, 0, -eps])
-            cylinder(d = screw_clear_d+4.5, h = 15);
+          // Only cut through the flange height, protecting the button face above:
+          translate([0, 0, tip_rest - eps])
+            cylinder(d = actual_notch_d, h = flange_t + 2 * eps);
         }
   }
 }
