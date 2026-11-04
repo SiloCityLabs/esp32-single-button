@@ -64,6 +64,7 @@ screw_head_h = 1.5;
 // Tunnel from the connector (inside the circle) out through the wall.
 usb_w = 10.0;
 usb_h = 5.0;
+usb_r = 2.5; // Oval radius (usb_h / 2 for full stadium / pill shape)
 usb_drop = 2.35;
 usb_y0 = 12;
 
@@ -139,10 +140,26 @@ module pcb_tabs() {
   translate([tab_inset, stack_y - 5, z0]) cube([tab_w, 10, h]);
 }
 
-module usb_tunnel() {
+module usb_tunnel(w = usb_w, h = usb_h, r = usb_r) {
   cz = pcb_z - usb_drop;
-  translate([-usb_w / 2, usb_y0 + stack_y, cz - usb_h / 2])
-    cube([usb_w, outer_r - (usb_y0 + stack_y) + 2, usb_h]);
+  y_start = usb_y0 + stack_y;
+  tunnel_len = outer_r - y_start + 5;
+  rad = (r > 0) ? min(r, min(w, h) / 2) : 0;
+
+  translate([0, y_start, cz])
+    rotate([-90, 0, 0])
+      linear_extrude(height = tunnel_len) {
+        if (rad > 0) {
+          hull() {
+            translate([-(w / 2 - rad), 0])
+              circle(r = rad, $fn = $preview ? 32 : 64);
+            translate([(w / 2 - rad), 0])
+              circle(r = rad, $fn = $preview ? 32 : 64);
+          }
+        } else {
+          square([w, h], center = true);
+        }
+      }
 }
 
 module wire_notch() {
