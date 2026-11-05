@@ -68,6 +68,13 @@ usb_r = 2.5; // Oval radius (usb_h / 2 for full stadium / pill shape)
 usb_drop = 2.35;
 usb_y0 = 12;
 
+// USB Recessed Opening (for cable overmold clearance)
+usb_recess_w = 12.0;
+usb_recess_h = 7.0;
+usb_recess_r = 3.5; // Oval radius for recess
+usb_recess_depth = 2.0;
+usb_inner_wall_t = 0.75; // Preserves inner 10x5mm hole portion through wall before stepping up to recess
+
 eps = 0.05;
 
 // --- derived ---
@@ -140,12 +147,16 @@ module pcb_tabs() {
   translate([tab_inset, stack_y - 5, z0]) cube([tab_w, 10, h]);
 }
 
-module usb_tunnel(w = usb_w, h = usb_h, r = usb_r) {
+module usb_tunnel(w = usb_w, h = usb_h, r = usb_r,
+                  rw = usb_recess_w, rh = usb_recess_h, rr = usb_recess_r,
+                  rdepth = usb_recess_depth, inner_t = usb_inner_wall_t) {
   cz = pcb_z - usb_drop;
   y_start = usb_y0 + stack_y;
   tunnel_len = outer_r - y_start + 5;
   rad = (r > 0) ? min(r, min(w, h) / 2) : 0;
+  rrad = (rr > 0) ? min(rr, min(rw, rh) / 2) : 0;
 
+  // 1. Through tunnel for USB connector (10x5 mm oval)
   translate([0, y_start, cz])
     rotate([-90, 0, 0])
       linear_extrude(height = tunnel_len) {
@@ -160,6 +171,29 @@ module usb_tunnel(w = usb_w, h = usb_h, r = usb_r) {
           square([w, h], center = true);
         }
       }
+
+  // 2. Recessed opening for cable overmold clearance (12x7 mm oval)
+  // Ensure the recess only cuts the outer portion of the wall, preserving inner_t for the 10x5mm hole
+  inner_wall_y = stack_y + xiao_usb_y1 + xiao_gap;
+  recess_y_start = max(inner_wall_y + inner_t, outer_r - rdepth);
+  recess_len = outer_r - recess_y_start + 5;
+
+  if (rw > 0 && rh > 0 && recess_len > 0) {
+    translate([0, recess_y_start, cz])
+      rotate([-90, 0, 0])
+        linear_extrude(height = recess_len) {
+          if (rrad > 0) {
+            hull() {
+              translate([-(rw / 2 - rrad), 0])
+                circle(r = rrad, $fn = $preview ? 32 : 64);
+              translate([(rw / 2 - rrad), 0])
+                circle(r = rrad, $fn = $preview ? 32 : 64);
+            }
+          } else {
+            square([rw, rh], center = true);
+          }
+        }
+  }
 }
 
 module wire_notch() {
