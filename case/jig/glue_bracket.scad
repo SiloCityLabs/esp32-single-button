@@ -12,8 +12,10 @@ $fn = $preview ? 48 : 120;
 bracket_outer_r = outer_r;
 // Include USB cutout for connector clearance / test plugging
 include_usb_tunnel = true;
-// Keep snap-in PCB retention tabs while glue/tape sets
-include_pcb_tabs = true;
+// Open the top of the USB-C cutout to seat_z so the board drops straight down
+open_usb_top = true;
+// Keep snap-in PCB retention tabs while glue/tape sets (false = straight drop-in / lift-out)
+include_pcb_tabs = false;
 // Optional bottom push-out hole diameter under the battery (0 = solid floor)
 push_hole_d = 0;
 
@@ -33,6 +35,16 @@ module extended_wire_slot() {
   slot_h   = seat_z - floor_t + eps;
   translate([wire_slot_x, wire_slot_y, floor_t])
     cube([wire_slot_w, slot_len, slot_h]);
+}
+
+module usb_square_slot() {
+  slot_w   = max(usb_recess_w, xiao_usb_w + 2 * xiao_gap);
+  y_start  = usb_y0 + stack_y;
+  slot_len = bracket_outer_r - y_start + 5.0;
+  z_start  = pcb_z - usb_drop - usb_recess_h / 2;
+  slot_h   = seat_z - z_start + eps;
+  translate([-slot_w / 2, y_start, z_start])
+    cube([slot_w, slot_len, slot_h]);
 }
 
 module battery_push_hole() {
@@ -64,9 +76,13 @@ module glue_bracket() {
     // Extended battery wire channel (+Y through outer wall, open to top face)
     extended_wire_slot();
 
-    // Optional USB-C tunnel clearance
-    if (include_usb_tunnel)
-      usb_tunnel();
+    // Optional USB-C clearance (flat-bottomed open-top rectangular slot by default)
+    if (include_usb_tunnel) {
+      if (open_usb_top)
+        usb_square_slot();
+      else
+        usb_tunnel();
+    }
 
     // Optional bottom push-out hole
     battery_push_hole();
