@@ -8,7 +8,7 @@ else
 endif
 
 .PHONY: help setup build build-c3 build-c6 flash-c3 flash-c6 config-c3 config-c6 \
-	logs-c6 flash-wait-c6 stl 3mf rev1 retro_futurist faceted rugged \
+	logs-c6 flash-wait-c6 stl 3mf rev1 retro_futurist faceted rugged jig \
 	base clamp button
 
 help:
@@ -88,6 +88,10 @@ case/%/models/button.stl: case/%/button.scad case/%/design.scad case/assets/comm
 	@$(MKDIR)
 	$(OPENSCAD) -o "$@" "$<"
 
+case/jig/models/glue_bracket.stl: case/jig/glue_bracket.scad case/assets/common.scad
+	@$(MKDIR)
+	$(OPENSCAD) -o "$@" "$<"
+
 # ==============================================================================
 # Style & Part Targets (supports e.g. "make rugged", "make rugged button", "make button")
 # ==============================================================================
@@ -124,6 +128,7 @@ button: $(foreach s,rev1 retro_futurist faceted rugged,case/$(s)/models/button.s
 endif
 
 # Global target
-stl: rev1 retro_futurist faceted rugged ## Build all style STLs
+jig: case/jig/models/glue_bracket.stl ## Build assembly gluing bracket STL
+stl: rev1 retro_futurist faceted rugged jig ## Build all style STLs
 
 3mf: ## Generate 3MF files
