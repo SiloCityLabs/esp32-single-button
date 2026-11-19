@@ -1,6 +1,6 @@
 // Stacked preview. Not a printable part.
 //   openscad -D 'cutaway=true' -o assembly.png assembly.scad
-include <common.scad>
+include <../assets/common.scad>
 
 cutaway = false;
 show_board = true;

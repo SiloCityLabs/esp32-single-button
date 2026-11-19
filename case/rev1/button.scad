@@ -1,7 +1,7 @@
 // Center cap. Stem tip on the bed, flat face up.
 // The flange is wider than the stem: turn on supports from the build plate only.
 //   openscad -o button.stl button.scad
-include <common.scad>
+include <../assets/common.scad>
 
 $fn = 200;
 

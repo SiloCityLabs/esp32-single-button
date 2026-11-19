@@ -1,10 +1,21 @@
-.PHONY: help
-SHELL := /bin/bash
+ifeq ($(OS),Windows_NT)
+    OPENSCAD ?= "C:/Program Files/OpenSCAD (Nightly)/openscad.exe"
+    MKDIR     = powershell -NoProfile -Command "New-Item -ItemType Directory -Force -Path '$(@D)' | Out-Null"
+else
+    SHELL    := /bin/bash
+    OPENSCAD ?= openscad
+    MKDIR     = mkdir -p "$(@D)"
+endif
+
+.PHONY: help setup build build-c3 build-c6 flash-c3 flash-c6 config-c3 config-c6 \
+	logs-c6 flash-wait-c6 stl 3mf rev1 retro_futurist faceted rugged \
+	base clamp button
 
 help:
 	@echo "Available targets:"
-	@echo
-	@grep -E '^[a-zA-Z0-9_-]+:.*?## .*$$' $(MAKEFILE_LIST) | awk 'BEGIN {FS = ":.*?## "}; {printf "  \033[36m%-20s\033[0m %s\n", $$1, $$2}'
+	@echo "  make base_rev1    - Build STLs for base_rev1"
+	@echo "  make rev2         - Build STLs for rev2"
+	@echo "  make stl          - Build all variant STLs"
 	@echo
 
 setup: ## Create venv and install ESPHome
@@ -52,20 +63,67 @@ flash-wait-c6: ## Flash C6 repeatedly when /dev/ttyACM0 appears
 	echo "Waiting for $$PORT (Ctrl+C to stop)..."; \
 	while true; do \
 		while [[ ! -e $$PORT ]]; do sleep 0.5; done; \
-		echo "[$$(date '+%H:%M:%S')] Device detected — flashing C6..."; \
+		echo "Device detected — flashing C6..."; \
 		if esphome upload $$YAML --device $$PORT; then \
-			echo "[$$(date '+%H:%M:%S')] Flash OK — unplug for next unit"; \
+			echo "Flash OK — unplug for next unit"; \
 		else \
-			echo "[$$(date '+%H:%M:%S')] Flash FAILED"; \
+			echo "Flash FAILED"; \
 		fi; \
 		while [[ -e $$PORT ]]; do sleep 0.5; done; \
 	done
 
-stl: ## Generate STL files
-	rm -rf case/rev1/*.stl && \
-	openscad -o case/rev1/base.stl case/rev1/base.scad && \
-	openscad -o case/rev1/clamp.stl case/rev1/clamp.scad && \
-	openscad -o case/rev1/button.stl case/rev1/button.scad
+# ==============================================================================
+# OpenSCAD Rules
+# ==============================================================================
 
+case/%/models/base.stl: case/%/base.scad case/%/design.scad case/assets/common.scad
+	@$(MKDIR)
+	$(OPENSCAD) -o "$@" "$<"
+
+case/%/models/clamp.stl: case/%/clamp.scad case/%/design.scad case/assets/common.scad
+	@$(MKDIR)
+	$(OPENSCAD) -o "$@" "$<"
+
+case/%/models/button.stl: case/%/button.scad case/%/design.scad case/assets/common.scad
+	@$(MKDIR)
+	$(OPENSCAD) -o "$@" "$<"
+
+# ==============================================================================
+# Style & Part Targets (supports e.g. "make rugged", "make rugged button", "make button")
+# ==============================================================================
+
+STYLES := rev1 retro_futurist faceted rugged
+PARTS  := base clamp button
+
+SELECTED_STYLE := $(filter $(STYLES),$(MAKECMDGOALS))
+SELECTED_PART  := $(filter $(PARTS),$(MAKECMDGOALS))
+
+ifeq ($(words $(SELECTED_STYLE)),1)
+  ifneq ($(SELECTED_PART),)
+    # Both style and part specified: e.g. "make rugged button"
+    $(SELECTED_STYLE): $(foreach p,$(SELECTED_PART),case/$(SELECTED_STYLE)/models/$(p).stl)
+    $(SELECTED_PART):
+	@:
+  else
+    # Style only: e.g. "make rugged"
+    $(SELECTED_STYLE): case/$(SELECTED_STYLE)/models/base.stl case/$(SELECTED_STYLE)/models/clamp.stl case/$(SELECTED_STYLE)/models/button.stl
+  endif
+else
+  # Default style targets
+  rev1: case/rev1/models/base.stl case/rev1/models/clamp.stl case/rev1/models/button.stl ## Build rev1 STLs
+  retro_futurist: case/retro_futurist/models/base.stl case/retro_futurist/models/clamp.stl case/retro_futurist/models/button.stl ## Build retro_futurist STLs
+  faceted: case/faceted/models/base.stl case/faceted/models/clamp.stl case/faceted/models/button.stl ## Build faceted STLs
+  rugged: case/rugged/models/base.stl case/rugged/models/clamp.stl case/rugged/models/button.stl ## Build rugged STLs
+endif
+
+# Part-only targets: e.g. "make button" builds all buttons
+ifeq ($(SELECTED_STYLE),)
+base: $(foreach s,rev1 retro_futurist faceted rugged,case/$(s)/models/base.stl) ## Build base STLs for all styles
+clamp: $(foreach s,rev1 retro_futurist faceted rugged,case/$(s)/models/clamp.stl) ## Build clamp STLs for all styles
+button: $(foreach s,rev1 retro_futurist faceted rugged,case/$(s)/models/button.stl) ## Build button STLs for all styles
+endif
+
+# Global target
+stl: rev1 retro_futurist faceted rugged ## Build all style STLs
 
 3mf: ## Generate 3MF files
